@@ -64,7 +64,7 @@ if script_dir in sys.path:
 
 libs = []
 
-if os.environ.has_key("SCONS_LIB_DIR"):
+if "SCONS_LIB_DIR" in os.environ:
     libs.append(os.environ["SCONS_LIB_DIR"])
 
 local_version = 'scons-local-' + __version__
@@ -125,12 +125,11 @@ else:
         # check only /foo/lib/scons*.
         prefs.append(sys.prefix)
 
-    temp = map(lambda x: os.path.join(x, 'lib'), prefs)
-    temp.extend(map(lambda x: os.path.join(x,
+    temp = [os.path.join(x, 'lib') for x in prefs]
+    temp.extend([os.path.join(x,
                                            'lib',
                                            'python' + sys.version[:3],
-                                           'site-packages'),
-                           prefs))
+                                           'site-packages') for x in prefs])
     prefs = temp
 
     # Add the parent directory of the current python's library to the
@@ -150,8 +149,8 @@ else:
 
 # Look first for 'scons-__version__' in all of our preference libs,
 # then for 'scons'.
-libs.extend(map(lambda x: os.path.join(x, scons_version), prefs))
-libs.extend(map(lambda x: os.path.join(x, 'scons'), prefs))
+libs.extend([os.path.join(x, scons_version) for x in prefs])
+libs.extend([os.path.join(x, 'scons') for x in prefs])
 
 sys.path = libs + sys.path
 
@@ -159,10 +158,10 @@ sys.path = libs + sys.path
 # END STANDARD SCons SCRIPT HEADER
 ##############################################################################
 
-import cPickle
+import pickle
 import imp
 import string
-import whichdb
+import dbm
 
 import SCons.SConsign
 
@@ -177,8 +176,8 @@ def my_whichdb(filename):
         pass
     return _orig_whichdb(filename)
 
-_orig_whichdb = whichdb.whichdb
-whichdb.whichdb = my_whichdb
+_orig_whichdb = dbm.whichdb
+dbm.whichdb = my_whichdb
 
 def my_import(mname):
     if '.' in mname:
@@ -237,7 +236,7 @@ def map_bkids(entry, name):
     except AttributeError:
         return None
     result = []
-    for i in xrange(len(bkids)):
+    for i in range(len(bkids)):
         result.append(nodeinfo_string(bkids[i], bkidsigs[i], "        "))
     if result == []:
         return None
@@ -270,7 +269,7 @@ def nodeinfo_raw(name, ninfo, prefix=""):
     try:
         keys = ninfo.field_list + ['_version_id']
     except AttributeError:
-        keys = d.keys()
+        keys = list(d.keys())
         keys.sort()
     l = []
     for k in keys:
@@ -287,7 +286,7 @@ def nodeinfo_cooked(name, ninfo, prefix=""):
     f = lambda x, ni=ninfo, v=Verbose: field(x, ni, v)
     if '\n' in name:
         name = repr(name)
-    outlist = [name+':'] + filter(None, map(f, field_list))
+    outlist = [name+':'] + [_f for _f in map(f, field_list) if _f]
     if Verbose:
         sep = '\n    ' + prefix
     else:
@@ -300,14 +299,14 @@ def printfield(name, entry, prefix=""):
     outlist = field("implicit", entry, 0)
     if outlist:
         if Verbose:
-            print "    implicit:"
-        print "        " + outlist
+            print("    implicit:")
+        print("        " + outlist)
     outact = field("action", entry, 0)
     if outact:
         if Verbose:
-            print "    action: " + outact
+            print("    action: " + outact)
         else:
-            print "        " + outact
+            print("        " + outact)
 
 def printentries(entries, location):
     if Print_Entries:
@@ -320,21 +319,21 @@ def printentries(entries, location):
                 try:
                     ninfo = entry.ninfo
                 except AttributeError:
-                    print name + ":"
+                    print(name + ":")
                 else:
-                    print nodeinfo_string(name, entry.ninfo)
+                    print(nodeinfo_string(name, entry.ninfo))
                 printfield(name, entry.binfo)
     else:
-        names = entries.keys()
+        names = list(entries.keys())
         names.sort()
         for name in names:
             entry = entries[name]
             try:
                 ninfo = entry.ninfo
             except AttributeError:
-                print name + ":"
+                print(name + ":")
             else:
-                print nodeinfo_string(name, entry.ninfo)
+                print(nodeinfo_string(name, entry.ninfo))
             printfield(name, entry.binfo)
 
 class Do_SConsignDB:
@@ -353,7 +352,7 @@ class Do_SConsignDB:
             #   .sconsign               => .sconsign.dblite
             #   .sconsign.dblite        => .sconsign.dblite.dblite
             db = self.dbm.open(fname, "r")
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             print_e = e
             try:
                 # That didn't work, so try opening the base name,
@@ -367,7 +366,7 @@ class Do_SConsignDB:
                 # suffix-mangling).
                 try:
                     open(fname, "r")
-                except (IOError, OSError), e:
+                except (IOError, OSError) as e:
                     # Nope, that file doesn't even exist, so report that
                     # fact back.
                     print_e = e
@@ -375,10 +374,10 @@ class Do_SConsignDB:
                 return
         except KeyboardInterrupt:
             raise
-        except cPickle.UnpicklingError:
+        except pickle.UnpicklingError:
             sys.stderr.write("sconsign: ignoring invalid `%s' file `%s'\n" % (self.dbm_name, fname))
             return
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("sconsign: ignoring invalid `%s' file `%s': %s\n" % (self.dbm_name, fname, e))
             return
 
@@ -391,29 +390,29 @@ class Do_SConsignDB:
                 else:
                     self.printentries(dir, val)
         else:
-            keys = db.keys()
+            keys = list(db.keys())
             keys.sort()
             for dir in keys:
                 self.printentries(dir, db[dir])
 
     def printentries(self, dir, val):
-        print '=== ' + dir + ':'
-        printentries(cPickle.loads(val), dir)
+        print('=== ' + dir + ':')
+        printentries(pickle.loads(val), dir)
 
 def Do_SConsignDir(name):
     try:
         fp = open(name, 'rb')
-    except (IOError, OSError), e:
+    except (IOError, OSError) as e:
         sys.stderr.write("sconsign: %s\n" % (e))
         return
     try:
         sconsign = SCons.SConsign.Dir(fp)
     except KeyboardInterrupt:
         raise
-    except cPickle.UnpicklingError:
+    except pickle.UnpicklingError:
         sys.stderr.write("sconsign: ignoring invalid .sconsign file `%s'\n" % (name))
         return
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("sconsign: ignoring invalid .sconsign file `%s': %s\n" % (name, e))
         return
     printentries(sconsign.entries, args[0])
@@ -465,13 +464,13 @@ for o, a in opts:
                 dbm = my_import(dbm_name)
             except:
                 sys.stderr.write("sconsign: illegal file format `%s'\n" % a)
-                print helpstr
+                print(helpstr)
                 sys.exit(2)
             Do_Call = Do_SConsignDB(a, dbm)
         else:
             Do_Call = Do_SConsignDir
     elif o in ('-h', '--help'):
-        print helpstr
+        print(helpstr)
         sys.exit(0)
     elif o in ('-i', '--implicit'):
         Print_Flags['implicit'] = 1
@@ -491,7 +490,7 @@ if Do_Call:
         Do_Call(a)
 else:
     for a in args:
-        dbm_name = whichdb.whichdb(a)
+        dbm_name = dbm.whichdb(a)
         if dbm_name:
             Map_Module = {'SCons.dblite' : 'dblite'}
             dbm = my_import(dbm_name)

@@ -35,7 +35,7 @@ __revision__ = "src/engine/SCons/Platform/aix.py 4043 2009/02/23 09:06:45 scons"
 import os
 import string
 
-import posix
+from . import posix
 
 def get_xlc(env, xlc=None, xlc_r=None, packages=[]):
     # Use the AIX package installer tool lslpp to figure out where a

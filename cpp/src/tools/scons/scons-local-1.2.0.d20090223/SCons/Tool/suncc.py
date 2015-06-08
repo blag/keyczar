@@ -34,7 +34,7 @@ __revision__ = "src/engine/SCons/Tool/suncc.py 4043 2009/02/23 09:06:45 scons"
 
 import SCons.Util
 
-import cc
+from . import cc
 
 def generate(env):
     """

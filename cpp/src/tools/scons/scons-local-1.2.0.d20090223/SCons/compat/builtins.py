@@ -57,7 +57,7 @@ to this version of Python and we don't need to add them from this module.
 
 __revision__ = "src/engine/SCons/compat/builtins.py 4043 2009/02/23 09:06:45 scons"
 
-import __builtin__
+import builtins
 
 try:
     all
@@ -71,7 +71,7 @@ except NameError:
             if not element:
                 return False
         return True
-    __builtin__.all = all
+    builtins.all = all
     all = all
 
 try:
@@ -86,7 +86,7 @@ except NameError:
             if element:
                 return True
         return False
-    __builtin__.any = any
+    builtins.any = any
     any = any
 
 try:
@@ -101,7 +101,7 @@ except NameError:
         worth the trouble.
         """
         return not not value
-    __builtin__.bool = bool
+    builtins.bool = bool
     bool = bool
 
 try:
@@ -117,13 +117,13 @@ except NameError:
             d[k] = v
         d.update(kwargs)
         return d
-    __builtin__.dict = dict
+    builtins.dict = dict
 
 try:
     False
 except NameError:
     # Pre-2.2 Python has no False keyword.
-    __builtin__.False = not 1
+    builtins.False = not 1
     # Assign to False in this module namespace so it shows up in pydoc output.
     False = False
 
@@ -131,7 +131,7 @@ try:
     True
 except NameError:
     # Pre-2.2 Python has no True keyword.
-    __builtin__.True = not 0
+    builtins.True = not 0
     # Assign to True in this module namespace so it shows up in pydoc output.
     True = True
 
@@ -139,7 +139,7 @@ try:
     file
 except NameError:
     # Pre-2.2 Python has no file() function.
-    __builtin__.file = open
+    builtins.file = open
 
 #
 try:
@@ -157,10 +157,10 @@ except NameError:
         argument sequence.
         """
         result = []
-        for i in xrange(min(map(len, lists))):
+        for i in range(min(list(map(len, lists)))):
             result.append(tuple(map(lambda l, i=i: l[i], lists)))
         return result
-    __builtin__.zip = zip
+    builtins.zip = zip
 
 
 

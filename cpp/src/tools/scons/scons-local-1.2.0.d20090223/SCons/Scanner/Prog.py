@@ -29,6 +29,7 @@ import SCons.Node
 import SCons.Node.FS
 import SCons.Scanner
 import SCons.Util
+import collections
 
 # global, set by --debug=findlibs
 print_find_libs = None
@@ -37,7 +38,7 @@ def ProgramScanner(**kw):
     """Return a prototype Scanner instance for scanning executable
     files for static-lib dependencies"""
     kw['path_function'] = SCons.Scanner.FindPathDirs('LIBPATH')
-    ps = apply(SCons.Scanner.Base, [scan, "ProgramScanner"], kw)
+    ps = SCons.Scanner.Base(*[scan, "ProgramScanner"], **kw)
     return ps
 
 def scan(node, env, libpath = ()):
@@ -78,7 +79,7 @@ def scan(node, env, libpath = ()):
 
     result = []
 
-    if callable(libpath):
+    if isinstance(libpath, collections.Callable):
         libpath = libpath()
 
     find_file = SCons.Node.FS.find_file

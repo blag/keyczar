@@ -1,31 +1,31 @@
 # dblite.py module contributed by Ralf W. Grosse-Kunstleve.
 # Extended for Unicode by Steven Knight.
 
-import cPickle
+import pickle
 import time
 import shutil
 import os
 import types
-import __builtin__
+import builtins
 
 keep_all_files = 00000
 ignore_corrupt_dbfiles = 0
 
 def corruption_warning(filename):
-    print "Warning: Discarding corrupt database:", filename
+    print("Warning: Discarding corrupt database:", filename)
 
 if hasattr(types, 'UnicodeType'):
     def is_string(s):
         t = type(s)
-        return t is types.StringType or t is types.UnicodeType
+        return t is bytes or t is str
 else:
     def is_string(s):
-        return type(s) is types.StringType
+        return type(s) is bytes
 
 try:
-    unicode('a')
+    str('a')
 except NameError:
-    def unicode(s): return s
+    def str(s): return s
 
 dblite_suffix = '.dblite'
 tmp_suffix = '.tmp'
@@ -42,8 +42,8 @@ class dblite:
   # See the discussion at:
   #   http://mail.python.org/pipermail/python-bugs-list/2003-March/016877.html
 
-  _open = __builtin__.open
-  _cPickle_dump = cPickle.dump
+  _open = builtins.open
+  _cPickle_dump = pickle.dump
   _os_chmod = os.chmod
   _os_rename = os.rename
   _os_unlink = os.unlink
@@ -70,7 +70,7 @@ class dblite:
     else:
       try:
         f = self._open(self._file_name, "rb")
-      except IOError, e:
+      except IOError as e:
         if (self._flag != "c"):
           raise e
         self._open(self._file_name, "wb", self._mode)
@@ -78,8 +78,8 @@ class dblite:
         p = f.read()
         if (len(p) > 0):
           try:
-            self._dict = cPickle.loads(p)
-          except (cPickle.UnpicklingError, EOFError):
+            self._dict = pickle.loads(p)
+          except (pickle.UnpicklingError, EOFError):
             if (ignore_corrupt_dbfiles == 0): raise
             if (ignore_corrupt_dbfiles == 1):
               corruption_warning(self._file_name)
@@ -99,7 +99,7 @@ class dblite:
     # (e.g. from a previous run as root).  We should still be able to
     # unlink() the file if the directory's writable, though, so ignore
     # any OSError exception  thrown by the chmod() call.
-    try: self._os_chmod(self._file_name, 0777)
+    try: self._os_chmod(self._file_name, 0o777)
     except OSError: pass
     self._os_unlink(self._file_name)
     self._os_rename(self._tmp_name, self._file_name)
@@ -119,14 +119,14 @@ class dblite:
   def __setitem__(self, key, value):
     self._check_writable()
     if (not is_string(key)):
-      raise TypeError, "key `%s' must be a string but is %s" % (key, type(key))
+      raise TypeError("key `%s' must be a string but is %s" % (key, type(key)))
     if (not is_string(value)):
-      raise TypeError, "value `%s' must be a string but is %s" % (value, type(value))
+      raise TypeError("value `%s' must be a string but is %s" % (value, type(value)))
     self._dict[key] = value
-    self._needs_sync = 0001
+    self._needs_sync = 0o001
 
   def keys(self):
-    return self._dict.keys()
+    return list(self._dict.keys())
 
   def has_key(self, key):
     return key in self._dict
@@ -135,14 +135,14 @@ class dblite:
     return key in self._dict
 
   def iterkeys(self):
-    return self._dict.iterkeys()
+    return iter(self._dict.keys())
 
   __iter__ = iterkeys
 
   def __len__(self):
     return len(self._dict)
 
-def open(file, flag=None, mode=0666):
+def open(file, flag=None, mode=0o666):
   return dblite(file, flag, mode)
 
 def _exercise():
@@ -150,45 +150,45 @@ def _exercise():
   assert len(db) == 0
   db["foo"] = "bar"
   assert db["foo"] == "bar"
-  db[unicode("ufoo")] = unicode("ubar")
-  assert db[unicode("ufoo")] == unicode("ubar")
+  db[str("ufoo")] = str("ubar")
+  assert db[str("ufoo")] == str("ubar")
   db.sync()
   db = open("tmp", "c")
   assert len(db) == 2, len(db)
   assert db["foo"] == "bar"
   db["bar"] = "foo"
   assert db["bar"] == "foo"
-  db[unicode("ubar")] = unicode("ufoo")
-  assert db[unicode("ubar")] == unicode("ufoo")
+  db[str("ubar")] = str("ufoo")
+  assert db[str("ubar")] == str("ufoo")
   db.sync()
   db = open("tmp", "r")
   assert len(db) == 4, len(db)
   assert db["foo"] == "bar"
   assert db["bar"] == "foo"
-  assert db[unicode("ufoo")] == unicode("ubar")
-  assert db[unicode("ubar")] == unicode("ufoo")
+  assert db[str("ufoo")] == str("ubar")
+  assert db[str("ubar")] == str("ufoo")
   try:
     db.sync()
-  except IOError, e:
+  except IOError as e:
     assert str(e) == "Read-only database: tmp.dblite"
   else:
-    raise RuntimeError, "IOError expected."
+    raise RuntimeError("IOError expected.")
   db = open("tmp", "w")
   assert len(db) == 4
   db["ping"] = "pong"
   db.sync()
   try:
     db[(1,2)] = "tuple"
-  except TypeError, e:
+  except TypeError as e:
     assert str(e) == "key `(1, 2)' must be a string but is <type 'tuple'>", str(e)
   else:
-    raise RuntimeError, "TypeError exception expected"
+    raise RuntimeError("TypeError exception expected")
   try:
     db["list"] = [1,2]
-  except TypeError, e:
+  except TypeError as e:
     assert str(e) == "value `[1, 2]' must be a string but is <type 'list'>", str(e)
   else:
-    raise RuntimeError, "TypeError exception expected"
+    raise RuntimeError("TypeError exception expected")
   db = open("tmp", "r")
   assert len(db) == 5
   db = open("tmp", "n")
@@ -198,10 +198,10 @@ def _exercise():
   _open("tmp.dblite", "w").write("x")
   try:
     db = open("tmp", "r")
-  except cPickle.UnpicklingError:
+  except pickle.UnpicklingError:
     pass
   else:
-    raise RuntimeError, "cPickle exception expected."
+    raise RuntimeError("cPickle exception expected.")
   global ignore_corrupt_dbfiles
   ignore_corrupt_dbfiles = 2
   db = open("tmp", "r")
@@ -209,11 +209,11 @@ def _exercise():
   os.unlink("tmp.dblite")
   try:
     db = open("tmp", "w")
-  except IOError, e:
+  except IOError as e:
     assert str(e) == "[Errno 2] No such file or directory: 'tmp.dblite'", str(e)
   else:
-    raise RuntimeError, "IOError expected."
-  print "OK"
+    raise RuntimeError("IOError expected.")
+  print("OK")
 
 if (__name__ == "__main__"):
   _exercise()

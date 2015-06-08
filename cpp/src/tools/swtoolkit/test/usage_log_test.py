@@ -74,7 +74,7 @@ class UsageLogLogTests(unittest.TestCase):
     log = self.log
     self.assertEqual(log.params, {})
     self.assertEqual(log.entries, [])
-    self.assert_(log.dump_writer is None)
+    self.assertTrue(log.dump_writer is None)
 
   def testSetParam(self):
     """Test SetParam()."""
@@ -127,7 +127,7 @@ class UsageLogLogTests(unittest.TestCase):
     log.Dump()
 
     # Make sure we were passed the correct log
-    self.assert_(self.dumped_log is self.log)
+    self.assertTrue(self.dumped_log is self.log)
 
     # Check contents at time of dump
     self.assertEqual(pre_dump_entries, self.dumped_entries)

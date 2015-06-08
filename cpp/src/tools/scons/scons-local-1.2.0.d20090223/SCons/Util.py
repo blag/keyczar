@@ -38,16 +38,16 @@ import sys
 import types
 
 from UserDict import UserDict
-from UserList import UserList
-from UserString import UserString
+from collections import UserList
+from collections import UserString
 
 # Don't "from types import ..." these because we need to get at the
 # types module later to look for UnicodeType.
-DictType        = types.DictType
+DictType        = dict
 InstanceType    = types.InstanceType
-ListType        = types.ListType
-StringType      = types.StringType
-TupleType       = types.TupleType
+ListType        = list
+StringType      = bytes
+TupleType       = tuple
 
 def dictify(keys, values, result={}):
     for k, v in zip(keys, values):
@@ -117,7 +117,7 @@ class NodeList(UserList):
     >>> someList.strip()
     [ 'foo', 'bar' ]
     """
-    def __nonzero__(self):
+    def __bool__(self):
         return len(self.data) != 0
 
     def __str__(self):
@@ -127,14 +127,12 @@ class NodeList(UserList):
         return iter(self.data)
 
     def __call__(self, *args, **kwargs):
-        result = map(lambda x, args=args, kwargs=kwargs: apply(x,
-                                                               args,
-                                                               kwargs),
-                     self.data)
+        result = list(map(lambda x, args=args, kwargs=kwargs: x(*args, **kwargs),
+                     self.data))
         return self.__class__(result)
 
     def __getattr__(self, name):
-        result = map(lambda x, n=name: getattr(x, n), self.data)
+        result = list(map(lambda x, n=name: getattr(x, n), self.data))
         return self.__class__(result)
 
 
@@ -204,7 +202,7 @@ def render_tree(root, child_func, prune=0, margin=[0], visited={}):
         else:
             retval = retval + "  "
 
-    if visited.has_key(rname):
+    if rname in visited:
         return retval + "+-[" + rname + "]\n"
 
     retval = retval + "+-" + rname + "\n"
@@ -243,17 +241,17 @@ def print_tree(root, child_func, prune=0, showtags=0, margin=[0], visited={}):
     if showtags:
 
         if showtags == 2:
-            print ' E         = exists'
-            print '  R        = exists in repository only'
-            print '   b       = implicit builder'
-            print '   B       = explicit builder'
-            print '    S      = side effect'
-            print '     P     = precious'
-            print '      A    = always build'
-            print '       C   = current'
-            print '        N  = no clean'
-            print '         H = no cache'
-            print ''
+            print(' E         = exists')
+            print('  R        = exists in repository only')
+            print('   b       = implicit builder')
+            print('   B       = explicit builder')
+            print('    S      = side effect')
+            print('     P     = precious')
+            print('      A    = always build')
+            print('       C   = current')
+            print('        N  = no clean')
+            print('         H = no cache')
+            print('')
 
         tags = ['[']
         tags.append(' E'[IDX(root.exists())])
@@ -273,15 +271,15 @@ def print_tree(root, child_func, prune=0, showtags=0, margin=[0], visited={}):
 
     def MMM(m):
         return ["  ","| "][m]
-    margins = map(MMM, margin[:-1])
+    margins = list(map(MMM, margin[:-1]))
 
     children = child_func(root)
 
-    if prune and visited.has_key(rname) and children:
-        print string.join(tags + margins + ['+-[', rname, ']'], '')
+    if prune and rname in visited and children:
+        print(string.join(tags + margins + ['+-[', rname, ']'], ''))
         return
 
-    print string.join(tags + margins + ['+-', rname], '')
+    print(string.join(tags + margins + ['+-', rname], ''))
 
     visited[rname] = 1
 
@@ -403,14 +401,14 @@ except TypeError:
     # specified object has one.
     #
     if hasattr(types, 'UnicodeType'):
-        UnicodeType = types.UnicodeType
+        UnicodeType = str
         def to_String(s):
             if isinstance(s, UserString):
                 t = type(s.data)
             else:
                 t = type(s)
             if t is UnicodeType:
-                return unicode(s)
+                return str(s)
             else:
                 return str(s)
     else:
@@ -450,11 +448,11 @@ else:
     # Note that profiling data shows a speed-up when comparing
     # explicitely with str and unicode instead of simply comparing
     # with basestring. (at least on Python 2.5.1)
-    StringTypes = (str, unicode, UserString)
+    StringTypes = (str, str, UserString)
 
     # Empirically, it is faster to check explicitely for str and
     # unicode than for basestring.
-    BaseStringTypes = (str, unicode)
+    BaseStringTypes = (str, str)
 
     def is_Dict(obj, isinstance=isinstance, DictTypes=DictTypes):
         return isinstance(obj, DictTypes)
@@ -590,7 +588,7 @@ _semi_deepcopy_dispatch = d = {}
 
 def _semi_deepcopy_dict(x):
     copy = {}
-    for key, val in x.items():
+    for key, val in list(x.items()):
         # The regular Python copy.deepcopy() also deepcopies the key,
         # as follows:
         #
@@ -599,15 +597,15 @@ def _semi_deepcopy_dict(x):
         # Doesn't seem like we need to, but we'll comment it just in case.
         copy[key] = semi_deepcopy(val)
     return copy
-d[types.DictionaryType] = _semi_deepcopy_dict
+d[dict] = _semi_deepcopy_dict
 
 def _semi_deepcopy_list(x):
-    return map(semi_deepcopy, x)
-d[types.ListType] = _semi_deepcopy_list
+    return list(map(semi_deepcopy, x))
+d[list] = _semi_deepcopy_list
 
 def _semi_deepcopy_tuple(x):
     return tuple(map(semi_deepcopy, x))
-d[types.TupleType] = _semi_deepcopy_tuple
+d[tuple] = _semi_deepcopy_tuple
 
 def _semi_deepcopy_inst(x):
     if hasattr(x, '__semi_deepcopy__'):
@@ -670,16 +668,16 @@ class Proxy:
 # attempt to load the windows registry module:
 can_read_reg = 0
 try:
-    import _winreg
+    import winreg
 
     can_read_reg = 1
     hkey_mod = _winreg
 
-    RegOpenKeyEx = _winreg.OpenKeyEx
-    RegEnumKey = _winreg.EnumKey
-    RegEnumValue = _winreg.EnumValue
-    RegQueryValueEx = _winreg.QueryValueEx
-    RegError = _winreg.error
+    RegOpenKeyEx = winreg.OpenKeyEx
+    RegEnumKey = winreg.EnumKey
+    RegEnumValue = winreg.EnumValue
+    RegQueryValueEx = winreg.QueryValueEx
+    RegError = winreg.error
 
 except ImportError:
     try:
@@ -741,8 +739,8 @@ else:
         # OSError subclass on Windows.)
         class WindowsError(OSError):
             pass
-        import __builtin__
-        __builtin__.WindowsError = WindowsError
+        import builtins
+        builtins.WindowsError = WindowsError
     else:
         del e
         
@@ -843,7 +841,7 @@ else:
                     # raised so as to not mask possibly serious disk or
                     # network issues.
                     continue
-                if stat.S_IMODE(st[stat.ST_MODE]) & 0111:
+                if stat.S_IMODE(st[stat.ST_MODE]) & 0o111:
                     try:
                         reject.index(f)
                     except ValueError:
@@ -889,7 +887,7 @@ def PrependPath(oldpath, newpath, sep = os.pathsep,
         newpaths = newpath
 
     if canonicalize:
-        newpaths=map(canonicalize, newpaths)
+        newpaths=list(map(canonicalize, newpaths))
 
     if not delete_existing:
         # First uniquify the old paths, making sure to 
@@ -970,7 +968,7 @@ def AppendPath(oldpath, newpath, sep = os.pathsep,
         newpaths = newpath
 
     if canonicalize:
-        newpaths=map(canonicalize, newpaths)
+        newpaths=list(map(canonicalize, newpaths))
 
     if not delete_existing:
         # add old paths to result, then
@@ -1083,7 +1081,7 @@ class OrderedDict(UserDict):
         return dict
 
     def items(self):
-        return zip(self._keys, self.values())
+        return list(zip(self._keys, list(self.values())))
 
     def keys(self):
         return self._keys[:]
@@ -1104,11 +1102,11 @@ class OrderedDict(UserDict):
         if key not in self._keys: self._keys.append(key)
 
     def update(self, dict):
-        for (key, val) in dict.items():
+        for (key, val) in list(dict.items()):
             self.__setitem__(key, val)
 
     def values(self):
-        return map(self.get, self._keys)
+        return list(map(self.get, self._keys))
 
 class Selector(OrderedDict):
     """A callable ordered dictionary that maps file suffixes to
@@ -1126,15 +1124,15 @@ class Selector(OrderedDict):
             # Try to perform Environment substitution on the keys of
             # the dictionary before giving up.
             s_dict = {}
-            for (k,v) in self.items():
+            for (k,v) in list(self.items()):
                 if not k is None:
                     s_k = env.subst(k)
-                    if s_dict.has_key(s_k):
+                    if s_k in s_dict:
                         # We only raise an error when variables point
                         # to the same suffix.  If one suffix is literal
                         # and a variable suffix contains this literal,
                         # the literal wins and we don't raise an error.
-                        raise KeyError, (s_dict[s_k][0], k, s_k)
+                        raise KeyError(s_dict[s_k][0], k, s_k)
                     s_dict[s_k] = (k,v)
             try:
                 return s_dict[ext][1]
@@ -1210,7 +1208,7 @@ def unique(s):
     except TypeError:
         pass    # move on to the next method
     else:
-        return u.keys()
+        return list(u.keys())
     del u
 
     # We can't hash all the elements.  Second fastest is to sort,
@@ -1276,7 +1274,7 @@ def uniquer_hashables(seq):
     result = []
     for item in seq:
         #if not item in seen:
-        if not seen.has_key(item):
+        if item not in seen:
             seen[item] = 1
             result.append(item)
     return result
@@ -1400,7 +1398,7 @@ class UniqueList(UserList):
     def sort(self, *args, **kwds):
         self.__make_unique()
         #return UserList.sort(self, *args, **kwds)
-        return apply(UserList.sort, (self,)+args, kwds)
+        return UserList.sort(*(self,)+args, **kwds)
     def extend(self, other):
         UserList.extend(self, other)
         self.unique = False
@@ -1489,7 +1487,7 @@ def AddMethod(object, function, name = None):
     import new
 
     if name is None:
-        name = function.func_name
+        name = function.__name__
     else:
         function = RenameFunction(function, name)
 
@@ -1512,12 +1510,12 @@ def RenameFunction(function, name):
     # Compatibility for Python 1.5 and 2.1.  Can be removed in favor of
     # passing function.func_defaults directly to new.function() once
     # we base on Python 2.2 or later.
-    func_defaults = function.func_defaults
+    func_defaults = function.__defaults__
     if func_defaults is None:
         func_defaults = ()
 
-    return new.function(function.func_code,
-                        function.func_globals,
+    return new.function(function.__code__,
+                        function.__globals__,
                         name,
                         func_defaults)
 
@@ -1582,7 +1580,7 @@ class Null:
     def __new__(cls, *args, **kwargs):
         if not '_inst' in vars(cls):
             #cls._inst = type.__new__(cls, *args, **kwargs)
-            cls._inst = apply(type.__new__, (cls,) + args, kwargs)
+            cls._inst = type.__new__(*(cls,) + args, **kwargs)
         return cls._inst
     def __init__(self, *args, **kwargs):
         pass
@@ -1590,7 +1588,7 @@ class Null:
         return self
     def __repr__(self):
         return "Null(0x%08X)" % id(self)
-    def __nonzero__(self):
+    def __bool__(self):
         return False
     def __getattr__(self, name):
         return self

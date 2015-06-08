@@ -80,8 +80,8 @@ def set_vars(env):
     ENV['CWFolder'] = version.path
     ENV['LM_LICENSE_FILE'] = version.license
     plus = lambda x: '+%s' % x
-    ENV['MWCIncludes'] = string.join(map(plus, version.includes), os.pathsep)
-    ENV['MWLibraries'] = string.join(map(plus, version.libs), os.pathsep)
+    ENV['MWCIncludes'] = string.join(list(map(plus, version.includes)), os.pathsep)
+    ENV['MWLibraries'] = string.join(list(map(plus, version.libs)), os.pathsep)
     return 1
 
 

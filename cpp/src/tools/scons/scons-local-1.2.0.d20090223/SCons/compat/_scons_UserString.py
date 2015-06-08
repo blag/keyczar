@@ -35,10 +35,10 @@ in later versions.
 
 import types
 
-StringType = types.StringType
+StringType = bytes
 
 if hasattr(types, 'UnicodeType'):
-    UnicodeType = types.UnicodeType
+    UnicodeType = str
     def is_String(obj):
         return type(obj) in (StringType, UnicodeType)
 else:
@@ -56,7 +56,7 @@ class UserString:
     def __str__(self): return str(self.data)
     def __repr__(self): return repr(self.data)
     def __int__(self): return int(self.data)
-    def __long__(self): return long(self.data)
+    def __long__(self): return int(self.data)
     def __float__(self): return float(self.data)
     def __complex__(self): return complex(self.data)
     def __hash__(self): return hash(self.data)

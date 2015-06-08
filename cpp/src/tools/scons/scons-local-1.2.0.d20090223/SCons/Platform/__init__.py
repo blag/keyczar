@@ -53,6 +53,7 @@ import tempfile
 import SCons.Errors
 import SCons.Subst
 import SCons.Tool
+from functools import reduce
 
 def platform_default():
     """Return the platform string for our execution environment.
@@ -92,7 +93,7 @@ def platform_module(name = platform_default()):
     our execution environment.
     """
     full_name = 'SCons.Platform.' + name
-    if not sys.modules.has_key(full_name):
+    if full_name not in sys.modules:
         if os.name == 'java':
             eval(full_name)
         else:
@@ -110,7 +111,7 @@ def platform_module(name = platform_default()):
                     importer = zipimport.zipimporter( sys.modules['SCons.Platform'].__path__[0] )
                     mod = importer.load_module(full_name)
                 except ImportError:
-                    raise SCons.Errors.UserError, "No platform named '%s'" % name
+                    raise SCons.Errors.UserError("No platform named '%s'" % name)
             setattr(SCons.Platform, name, mod)
     return sys.modules[full_name]
 
@@ -196,7 +197,7 @@ class TempFileMunge:
         if not prefix:
             prefix = '@'
 
-        args = map(SCons.Subst.quote_spaces, cmd[1:])
+        args = list(map(SCons.Subst.quote_spaces, cmd[1:]))
         open(tmp, 'w').write(string.join(args, " ") + "\n")
         # XXX Using the SCons.Action.print_actions value directly
         # like this is bogus, but expedient.  This class should
@@ -214,8 +215,8 @@ class TempFileMunge:
         # purity get in the way of just being helpful, so we'll
         # reach into SCons.Action directly.
         if SCons.Action.print_actions:
-            print("Using tempfile "+native_tmp+" for command line:\n"+
-                  str(cmd[0]) + " " + string.join(args," "))
+            print(("Using tempfile "+native_tmp+" for command line:\n"+
+                  str(cmd[0]) + " " + string.join(args," ")))
         return [ cmd[0], prefix + native_tmp + '\n' + rm, native_tmp ]
     
 def Platform(name = platform_default()):

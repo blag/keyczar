@@ -31,7 +31,7 @@ Nodes.
 __revision__ = "src/engine/SCons/Executor.py 4043 2009/02/23 09:06:45 scons"
 
 import string
-import UserList
+import collections
 
 from SCons.Debug import logInstanceCreation
 import SCons.Errors
@@ -47,7 +47,7 @@ class Batch:
 
 
 
-class TSList(UserList.UserList):
+class TSList(collections.UserList):
     """A class that implements $TARGETS or $SOURCES expansions by wrapping
     an executor Method.  This class is used in the Executor.lvars()
     to delay creation of NodeList objects until they're needed.
@@ -161,10 +161,10 @@ class Executor:
         ut = []
         for b in self.batches:
             if b.targets[0].is_up_to_date():
-                us.extend(map(rfile, b.sources))
+                us.extend(list(map(rfile, b.sources)))
                 ut.extend(b.targets)
             else:
-                cs.extend(map(rfile, b.sources))
+                cs.extend(list(map(rfile, b.sources)))
                 ct.extend(b.targets)
         self._changed_sources_list = SCons.Util.NodeList(cs)
         self._changed_targets_list = SCons.Util.NodeList(ct)
@@ -190,14 +190,14 @@ class Executor:
         return rfile(self.batches[0].sources[0]).get_subst_proxy()
 
     def _get_sources(self, *args, **kw):
-        return SCons.Util.NodeList(map(lambda n: rfile(n).get_subst_proxy(), self.get_all_sources()))
+        return SCons.Util.NodeList([rfile(n).get_subst_proxy() for n in self.get_all_sources()])
 
     def _get_target(self, *args, **kw):
         #return SCons.Util.NodeList([self.batches[0].targets[0].get_subst_proxy()])
         return self.batches[0].targets[0].get_subst_proxy()
 
     def _get_targets(self, *args, **kw):
-        return SCons.Util.NodeList(map(lambda n: n.get_subst_proxy(), self.get_all_targets()))
+        return SCons.Util.NodeList([n.get_subst_proxy() for n in self.get_all_targets()])
 
     def _get_unchanged_sources(self, *args, **kw):
         try:
@@ -226,7 +226,7 @@ class Executor:
         if not SCons.Util.is_List(action):
             if not action:
                 import SCons.Errors
-                raise SCons.Errors.UserError, "Executor must have an action."
+                raise SCons.Errors.UserError("Executor must have an action.")
             action = [action]
         self.action_list = action
 
@@ -342,7 +342,7 @@ class Executor:
         for act in self.get_action_list():
             #args = (self.get_all_targets(), self.get_all_sources(), env)
             args = ([], [], env)
-            status = apply(act, args, kw)
+            status = act(*args, **kw)
             if isinstance(status, SCons.Errors.BuildError):
                 status.executor = self
                 raise status
@@ -372,7 +372,7 @@ class Executor:
         # TODO(batch):  extend to multiple batches
         assert (len(self.batches) == 1)
         # TODO(batch):  remove duplicates?
-        sources = filter(lambda x, s=self.batches[0].sources: x not in s, sources)
+        sources = list(filter(lambda x, s=self.batches[0].sources: x not in s, sources))
         self.batches[0].sources.extend(sources)
 
     def get_sources(self):
@@ -394,7 +394,7 @@ class Executor:
         for s in self.get_all_sources():
             if s.missing():
                 msg = "Source `%s' not found, needed by target `%s'."
-                raise SCons.Errors.StopError, msg % (s, self.batches[0].targets[0])
+                raise SCons.Errors.StopError(msg % (s, self.batches[0].targets[0]))
 
     def add_pre_action(self, action):
         self.pre_actions.append(action)
@@ -408,7 +408,7 @@ class Executor:
         env = self.get_build_env()
         get = lambda action, t=self.get_all_targets(), s=self.get_all_sources(), e=env: \
                      action.genstring(t, s, e)
-        return string.join(map(get, self.get_action_list()), "\n")
+        return string.join(list(map(get, self.get_action_list())), "\n")
 
 
     def __str__(self):
@@ -433,7 +433,7 @@ class Executor:
         env = self.get_build_env()
         get = lambda action, t=self.get_all_targets(), s=self.get_all_sources(), e=env: \
                      action.get_contents(t, s, e)
-        result = string.join(map(get, self.get_action_list()), "")
+        result = string.join(list(map(get, self.get_action_list())), "")
         self._memo['get_contents'] = result
         return result
 
@@ -521,7 +521,7 @@ class Executor:
             idict = {}
             for i in ignore:
                 idict[i] = 1
-            sourcelist = filter(lambda s, i=idict: not i.has_key(s), sourcelist)
+            sourcelist = list(filter(lambda s, i=idict: s not in i, sourcelist))
 
         memo_dict[key] = sourcelist
 
@@ -547,7 +547,7 @@ def GetBatchExecutor(key):
     return _batch_executors[key]
 
 def AddBatchExecutor(key, executor):
-    assert not _batch_executors.has_key(key)
+    assert key not in _batch_executors
     _batch_executors[key] = executor
 
 nullenv = None

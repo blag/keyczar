@@ -32,7 +32,7 @@ selection method.
 
 __revision__ = "src/engine/SCons/Platform/cygwin.py 4043 2009/02/23 09:06:45 scons"
 
-import posix
+from . import posix
 from SCons.Platform import TempFileMunge
 
 def generate(env):

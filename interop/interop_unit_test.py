@@ -137,7 +137,7 @@ class InteropTestRunnerTest(unittest.TestCase):
       try:
         self.runner._CallImplementation("err", string)
         assert False, "This should always throw an error"
-      except Exception, e:
+      except Exception as e:
         pass
 
   def __GetAllExceptions(self):
@@ -151,7 +151,7 @@ class InteropTestRunnerTest(unittest.TestCase):
             for tkeyset in interop.Keyset.GetTestKeysets(keyset, self.runner):
               for tests in self.runner._Options(
                   operation, tkeyset, "testOptions"):
-                combined_options = dict(generates.items() + tests.items())
+                combined_options = dict(list(generates.items()) + list(tests.items()))
                 if self.runner._IsException(
                     implementation, operation, keyset.name, combined_options):
                   output.append((

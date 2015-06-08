@@ -138,7 +138,7 @@ class GTestBreakOnFailureUnitTest(unittest.TestCase):
     msg = ('when %s%s, an assertion failure in "%s" %s cause a seg-fault.' %
            (BREAK_ON_FAILURE_ENV_VAR, env_var_value_msg, ' '.join(command),
             should_or_not))
-    self.assert_(has_seg_fault == expect_seg_fault, msg)
+    self.assertTrue(has_seg_fault == expect_seg_fault, msg)
 
   def testDefaultBehavior(self):
     """Tests the behavior of the default mode."""

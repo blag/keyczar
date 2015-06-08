@@ -73,7 +73,7 @@ def import_as(module, name):
     file, filename, suffix_mode_type = imp.find_module(module, [dir])
     imp.load_module(name, file, filename, suffix_mode_type)
 
-import builtins
+from . import builtins
 
 try:
     import hashlib
@@ -103,9 +103,9 @@ except NameError:
         # custom sets module that can be discarded easily when we
         # stop supporting those versions.
         import_as('_scons_sets15', 'sets')
-    import __builtin__
+    import builtins
     import sets
-    __builtin__.set = sets.Set
+    builtins.set = sets.Set
 
 import fnmatch
 try:
@@ -117,7 +117,7 @@ except AttributeError:
         import os,posixpath
         result=[]
         pat = os.path.normcase(pat)
-        if not fnmatch._cache.has_key(pat):
+        if pat not in fnmatch._cache:
             import re
             res = fnmatch.translate(pat)
             fnmatch._cache[pat] = re.compile(res)
@@ -212,7 +212,7 @@ except AttributeError:
         except OSError:
             if os.path.isdir(src):
                 if shutil.destinsrc(src, dst):
-                    raise Error, "Cannot move a directory '%s' into itself '%s'." % (src, dst)
+                    raise Error("Cannot move a directory '%s' into itself '%s'." % (src, dst))
                 shutil.copytree(src, dst, symlinks=True)
                 shutil.rmtree(src)
             else:
@@ -241,11 +241,11 @@ except AttributeError:
     # Pre-1.6 Python has no sys.version_info
     import string
     version_string = string.split(sys.version)[0]
-    version_ints = map(int, string.split(version_string, '.'))
+    version_ints = list(map(int, string.split(version_string, '.')))
     sys.version_info = tuple(version_ints + ['final', 0])
 
 try:
-    import UserString
+    import collections
 except ImportError:
     # Pre-1.6 Python has no UserString module.
     import_as('_scons_UserString', 'UserString')

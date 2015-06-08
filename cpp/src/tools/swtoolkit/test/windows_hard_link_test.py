@@ -52,7 +52,7 @@ def TestSConstruct(scons_globals):
   env.Command('b.txt', [], Touch('$TARGET'))
 
   # Create a read-only file with a builder
-  env.Command('c.txt', [], [Touch('$TARGET'), Chmod('$TARGET', 0444)])
+  env.Command('c.txt', [], [Touch('$TARGET'), Chmod('$TARGET', 0o444)])
 
   # Install copies of the files
   n = env.InstallAs(target=['a2.txt', 'b2.txt', 'c2.txt'],

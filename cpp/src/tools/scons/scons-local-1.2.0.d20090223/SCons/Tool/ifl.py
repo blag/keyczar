@@ -35,7 +35,7 @@ __revision__ = "src/engine/SCons/Tool/ifl.py 4043 2009/02/23 09:06:45 scons"
 
 import SCons.Defaults
 from SCons.Scanner.Fortran import FortranScan
-from FortranCommon import add_all_to_env
+from .FortranCommon import add_all_to_env
 
 def generate(env):
     """Add Builders and construction variables for ifl to an Environment."""
@@ -43,12 +43,12 @@ def generate(env):
     SCons.Tool.SourceFileScanner.add_scanner('.i', fscan)
     SCons.Tool.SourceFileScanner.add_scanner('.i90', fscan)
 
-    if not env.has_key('FORTRANFILESUFFIXES'):
+    if 'FORTRANFILESUFFIXES' not in env:
         env['FORTRANFILESUFFIXES'] = ['.i']
     else:
         env['FORTRANFILESUFFIXES'].append('.i')
 
-    if not env.has_key('F90FILESUFFIXES'):
+    if 'F90FILESUFFIXES' not in env:
         env['F90FILESUFFIXES'] = ['.i90']
     else:
         env['F90FILESUFFIXES'].append('.i90')

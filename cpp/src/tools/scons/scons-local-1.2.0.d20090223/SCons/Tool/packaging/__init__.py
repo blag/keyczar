@@ -58,7 +58,7 @@ def Tag(env, target, source, *more_tags, **kw_tags):
         kw_tags[first_tag[0]] = ''
 
     if len(kw_tags) == 0 and len(more_tags) == 0:
-        raise UserError, "No tags given."
+        raise UserError("No tags given.")
 
     # XXX: sanity checks
     for x in more_tags:
@@ -73,7 +73,7 @@ def Tag(env, target, source, *more_tags, **kw_tags):
         target=env.Flatten(target)
 
     for t in target:
-        for (k,v) in kw_tags.items():
+        for (k,v) in list(kw_tags.items()):
             # all file tags have to start with PACKAGING_, so we can later
             # differentiate between "normal" object attributes and the
             # packaging attributes. As the user should not be bothered with
@@ -91,7 +91,7 @@ def Package(env, target=None, source=None, **kw):
         source = env.FindInstalledFiles()
 
     if len(source)==0:
-        raise UserError, "No source for Package() given"
+        raise UserError("No source for Package() given")
 
     # decide which types of packages shall be built. Can be defined through
     # four mechanisms: command line argument, keyword argument,
@@ -105,12 +105,12 @@ def Package(env, target=None, source=None, **kw):
         kw['PACKAGETYPE'] = GetOption('package_type')
 
     if kw['PACKAGETYPE'] == None:
-        if env['BUILDERS'].has_key('Tar'):
+        if 'Tar' in env['BUILDERS']:
             kw['PACKAGETYPE']='targz'
-        elif env['BUILDERS'].has_key('Zip'):
+        elif 'Zip' in env['BUILDERS']:
             kw['PACKAGETYPE']='zip'
         else:
-            raise UserError, "No type for Package() given"
+            raise UserError("No type for Package() given")
 
     PACKAGETYPE=kw['PACKAGETYPE']
     if not is_List(PACKAGETYPE):
@@ -121,10 +121,10 @@ def Package(env, target=None, source=None, **kw):
         try:
             file,path,desc=imp.find_module(type, __path__)
             return imp.load_module(type, file, path, desc)
-        except ImportError, e:
+        except ImportError as e:
             raise EnvironmentError("packager %s not available: %s"%(type,str(e)))
 
-    packagers=map(load_packager, PACKAGETYPE)
+    packagers=list(map(load_packager, PACKAGETYPE))
 
     # set up targets and the PACKAGEROOT
     try:
@@ -139,10 +139,10 @@ def Package(env, target=None, source=None, **kw):
             default_target = default_name%kw
             target.extend( [default_target]*size_diff )
 
-        if not kw.has_key('PACKAGEROOT'):
+        if 'PACKAGEROOT' not in kw:
             kw['PACKAGEROOT'] = default_name%kw
 
-    except KeyError, e:
+    except KeyError as e:
         raise SCons.Errors.UserError( "Missing Packagetag '%s'"%e.args[0] )
 
     # setup the source files
@@ -153,15 +153,15 @@ def Package(env, target=None, source=None, **kw):
     try:
         for packager in packagers:
             t=[target.pop(0)]
-            t=apply(packager.package, [env,t,source], kw)
+            t=packager.package(*[env,t,source], **kw)
             targets.extend(t)
 
         assert( len(target) == 0 )
 
-    except KeyError, e:
+    except KeyError as e:
         raise SCons.Errors.UserError( "Missing Packagetag '%s' for %s packager"\
                                       % (e.args[0],packager.__name__) )
-    except TypeError, e:
+    except TypeError as e:
         # this exception means that a needed argument for the packager is
         # missing. As our packagers get their "tags" as named function
         # arguments we need to find out which one is missing.
@@ -174,7 +174,7 @@ def Package(env, target=None, source=None, **kw):
         args.remove('source')
         # now remove any args for which we have a value in kw.
         #args=[x for x in args if not kw.has_key(x)]
-        args=filter(lambda x, kw=kw: not kw.has_key(x), args)
+        args=list(filter(lambda x, kw=kw: x not in kw, args))
 
         if len(args)==0:
             raise # must be a different error, so reraise
@@ -222,7 +222,7 @@ def options(opts):
     opts.AddVariables(
         EnumVariable( 'PACKAGETYPE',
                      'the type of package to create.',
-                     None, allowed_values=map( str, __all__ ),
+                     None, allowed_values=list(map( str, __all__ )),
                      ignorecase=2
                   )
     )
@@ -237,7 +237,7 @@ def copy_attr(f1, f2):
     #pattrs = [x for x in dir(f1) if not hasattr(f2, x) and\
     #                                x.startswith('PACKAGING_')]
     copyit = lambda x, f2=f2: not hasattr(f2, x) and x[:10] == 'PACKAGING_'
-    pattrs = filter(copyit, dir(f1))
+    pattrs = list(filter(copyit, dir(f1)))
     for attr in pattrs:
         setattr(f2, attr, getattr(f1, attr))
 def putintopackageroot(target, source, env, pkgroot, honor_install_location=1):
@@ -291,7 +291,7 @@ def stripinstallbuilder(target, source, env):
             (file.builder.name=="InstallBuilder" or\
              file.builder.name=="InstallAsBuilder"))
 
-    if len(filter(has_no_install_location, source)):
+    if len(list(filter(has_no_install_location, source))):
         warn(Warning, "there are files to package which have no\
         InstallBuilder attached, this might lead to irreproducible packages")
 

@@ -111,9 +111,9 @@ class Tool:
                 finally:
                     if file:
                         file.close()
-            except ImportError, e:
+            except ImportError as e:
                 if str(e)!="No module named %s"%self.name:
-                    raise SCons.Errors.EnvironmentError, e
+                    raise SCons.Errors.EnvironmentError(e)
                 try:
                     import zipimport
                 except ImportError:
@@ -123,7 +123,7 @@ class Tool:
                         try:
                             importer = zipimport.zipimporter(aPath)
                             return importer.load_module(self.name)
-                        except ImportError, e:
+                        except ImportError as e:
                             pass
         finally:
             sys.path = oldpythonpath
@@ -141,21 +141,21 @@ class Tool:
                     if file:
                         file.close()
                     return module
-                except ImportError, e:
+                except ImportError as e:
                     if str(e)!="No module named %s"%self.name:
-                        raise SCons.Errors.EnvironmentError, e
+                        raise SCons.Errors.EnvironmentError(e)
                     try:
                         import zipimport
                         importer = zipimport.zipimporter( sys.modules['SCons.Tool'].__path__[0] )
                         module = importer.load_module(full_name)
                         setattr(SCons.Tool, self.name, module)
                         return module
-                    except ImportError, e:
+                    except ImportError as e:
                         m = "No tool named '%s': %s" % (self.name, e)
-                        raise SCons.Errors.EnvironmentError, m
-            except ImportError, e:
+                        raise SCons.Errors.EnvironmentError(m)
+            except ImportError as e:
                 m = "No tool named '%s': %s" % (self.name, e)
-                raise SCons.Errors.EnvironmentError, m
+                raise SCons.Errors.EnvironmentError(m)
 
     def __call__(self, env, *args, **kw):
         if self.init_kw is not None:
@@ -170,7 +170,7 @@ class Tool:
         env.Append(TOOLS = [ self.name ])
         if hasattr(self, 'options'):
             import SCons.Variables
-            if not env.has_key('options'):
+            if 'options' not in env:
                 from SCons.Script import ARGUMENTS
                 env['options']=SCons.Variables.Variables(args=ARGUMENTS)
             opts=env['options']
@@ -178,7 +178,7 @@ class Tool:
             self.options(opts)
             opts.Update(env)
 
-        apply(self.generate, ( env, ) + args, kw)
+        self.generate(*( env, ) + args, **kw)
 
     def __str__(self):
         return self.name
@@ -474,7 +474,7 @@ class ToolInitializerMethod:
         builder = self.get_builder(env)
         if builder is None:
             return [], []
-        return apply(builder, args, kw)
+        return builder(*args, **kw)
 
 class ToolInitializer:
     """
@@ -507,7 +507,7 @@ class ToolInitializer:
         so we no longer copy and re-bind them when the construction
         environment gets cloned.
         """
-        for method in self.methods.values():
+        for method in list(self.methods.values()):
             env.RemoveMethod(method)
 
     def apply_tools(self, env):
@@ -530,9 +530,9 @@ class ToolInitializer:
 def Initializers(env):
     ToolInitializer(env, ['install'], ['_InternalInstall', '_InternalInstallAs'])
     def Install(self, *args, **kw):
-        return apply(self._InternalInstall, args, kw)
+        return self._InternalInstall(*args, **kw)
     def InstallAs(self, *args, **kw):
-        return apply(self._InternalInstallAs, args, kw)
+        return self._InternalInstallAs(*args, **kw)
     env.AddMethod(Install)
     env.AddMethod(InstallAs)
 
@@ -546,7 +546,7 @@ def FindTool(tools, env):
 def FindAllTools(tools, env):
     def ToolExists(tool, env=env):
         return Tool(tool).exists(env)
-    return filter (ToolExists, tools)
+    return list(filter (ToolExists, tools))
 
 def tool_list(platform, env):
 
@@ -664,7 +664,7 @@ def tool_list(platform, env):
               fortran_compiler, assembler, ar]
              + other_tools)
 
-    return filter(lambda x: x, tools)
+    return [x for x in tools if x]
 
 # Local Variables:
 # tab-width:4

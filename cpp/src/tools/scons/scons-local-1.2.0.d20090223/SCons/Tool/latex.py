@@ -55,10 +55,10 @@ def generate(env):
     if LaTeXAction is None:
         LaTeXAction = SCons.Action.Action('$LATEXCOM', '$LATEXCOMSTR')
 
-    import dvi
+    from . import dvi
     dvi.generate(env)
 
-    import pdf
+    from . import pdf
     pdf.generate(env)
 
     bld = env['BUILDERS']['DVI']

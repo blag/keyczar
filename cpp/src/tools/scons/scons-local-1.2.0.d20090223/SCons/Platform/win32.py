@@ -63,27 +63,27 @@ except AttributeError:
 else:
     parallel_msg = None
 
-    import __builtin__
+    import builtins
 
-    _builtin_file = __builtin__.file
-    _builtin_open = __builtin__.open
+    _builtin_file = builtins.file
+    _builtin_open = builtins.open
 
     def _scons_file(*args, **kw):
-        fp = apply(_builtin_file, args, kw)
+        fp = _builtin_file(*args, **kw)
         win32api.SetHandleInformation(msvcrt.get_osfhandle(fp.fileno()),
                                       win32con.HANDLE_FLAG_INHERIT,
                                       0)
         return fp
 
     def _scons_open(*args, **kw):
-        fp = apply(_builtin_open, args, kw)
+        fp = _builtin_open(*args, **kw)
         win32api.SetHandleInformation(msvcrt.get_osfhandle(fp.fileno()),
                                       win32con.HANDLE_FLAG_INHERIT,
                                       0)
         return fp
 
-    __builtin__.file = _scons_file
-    __builtin__.open = _scons_open
+    builtins.file = _scons_file
+    builtins.open = _scons_open
 
 
 
@@ -128,7 +128,7 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
         try:
             args = [sh, '/C', escape(string.join(args)) ]
             ret = os.spawnve(os.P_WAIT, sh, args, env)
-        except OSError, e:
+        except OSError as e:
             # catch any error
             try:
                 ret = exitvalmap[e[0]]
@@ -156,7 +156,7 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
 def exec_spawn(l, env):
     try:
         result = os.spawnve(os.P_WAIT, l[0], l, env)
-    except OSError, e:
+    except OSError as e:
         try:
             result = exitvalmap[e[0]]
             sys.stderr.write("scons: %s: %s\n" % (l[0], e[1]))
@@ -273,7 +273,7 @@ def generate(env):
         tmp_path = systemroot + os.pathsep + \
                    os.path.join(systemroot,'System32')
         tmp_pathext = '.com;.exe;.bat;.cmd'
-        if os.environ.has_key('PATHEXT'):
+        if 'PATHEXT' in os.environ:
             tmp_pathext = os.environ['PATHEXT'] 
         cmd_interp = SCons.Util.WhereIs('cmd', tmp_path, tmp_pathext)
         if not cmd_interp:
@@ -285,7 +285,7 @@ def generate(env):
             cmd_interp = env.Detect('command')
 
     
-    if not env.has_key('ENV'):
+    if 'ENV' not in env:
         env['ENV']        = {}
 
     # Import things from the external environment to the construction
@@ -302,7 +302,7 @@ def generate(env):
         if v:
             env['ENV'][var] = v
 
-    if not env['ENV'].has_key('COMSPEC'):
+    if 'COMSPEC' not in env['ENV']:
         v = os.environ.get("COMSPEC")
         if v:
             env['ENV']['COMSPEC'] = v

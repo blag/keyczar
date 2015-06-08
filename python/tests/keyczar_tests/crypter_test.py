@@ -20,7 +20,8 @@ Testcases to test behavior of Keyczar Crypters.
 @author: arkajit.dey@gmail.com (Arkajit Dey)
 """
 
-import cStringIO as StringIO
+import io as StringIO
+import itertools
 import os
 import random
 import unittest
@@ -58,7 +59,13 @@ class BaseCrypterTest(unittest.TestCase):
     if len_to_write == -1:
       stream.write(data)
     else:
-      for c in map(None, *(iter(data),) * len_to_write):
+      # From https://stackoverflow.com/a/12016610
+      # Ex:
+      # map(None, xrange(5), xrange(10, 12))
+      #   ->
+      # list(map(lambda *a: a, *zip(*itertools.zip_longest(range(5), range(10, 17)))))
+      #for c in map(None, *(iter(data),) * len_to_write):
+      for c in list(map(lambda: *a: a, *zip(*itertools.zip_longest(*(iter(data),) * len_to_write)))):
         stream.write(''.join([x for x in c if x]))
     stream.flush()
 
@@ -84,7 +91,13 @@ class BaseCrypterTest(unittest.TestCase):
     """Helper to simulate reflowing of data"""
     endings = ['\n', '\r', '\r\n']
     reflowed_data = ''
-    for c in map(None, *(iter(data),) * 5):
+    # From https://stackoverflow.com/a/12016610
+    # Ex:
+    # map(None, xrange(5), xrange(10, 12))
+    #   ->
+    # list(map(lambda *a: a, *zip(*itertools.zip_longest(range(5), range(10, 17)))))
+    #for c in map(None, *(iter(data),) * 5):
+    for c in list(map(lambda *a: a, *zip(*itertools.zip_longest(*(iter(data),) * 5)))):
       d = ''.join([x for x in c if x])
       reflowed_data += '%s%s' %(random.choice(endings), d)
     return reflowed_data
@@ -98,9 +111,9 @@ class BaseCrypterTest(unittest.TestCase):
     active_ciphertext = util.ReadFile(os.path.join(path, "1.out"))
     primary_ciphertext = util.ReadFile(os.path.join(path, "2.out"))
     active_decrypted = crypter.Decrypt(active_ciphertext)
-    self.assertEquals(self.input_data, active_decrypted)
+    self.assertEqual(self.input_data, active_decrypted)
     primary_decrypted = crypter.Decrypt(primary_ciphertext)
-    self.assertEquals(self.input_data, primary_decrypted)
+    self.assertEqual(self.input_data, primary_decrypted)
 
   def __testDecryptReflowed(self, subdir, reader=None):
     path = os.path.join(TEST_DATA, subdir)
@@ -112,12 +125,12 @@ class BaseCrypterTest(unittest.TestCase):
 
     reflowed_active_ciphertext = self.__simulateReflow(active_ciphertext)
     active_decrypted = crypter.Decrypt(reflowed_active_ciphertext)
-    self.assertEquals(self.input_data, active_decrypted)
+    self.assertEqual(self.input_data, active_decrypted)
 
     primary_ciphertext = util.ReadFile(os.path.join(path, "2.out"))
     reflowed_primary_ciphertext = self.__simulateReflow(primary_ciphertext)
     primary_decrypted = crypter.Decrypt(reflowed_primary_ciphertext)
-    self.assertEquals(self.input_data, primary_decrypted)
+    self.assertEqual(self.input_data, primary_decrypted)
 
   def __testDecryptStream(self, subdir, reader, input_data, stream_buffer_size,
                           len_to_read, stream_source):
@@ -139,7 +152,7 @@ class BaseCrypterTest(unittest.TestCase):
       decoder=decoder,
       buffer_size=stream_buffer_size)
     plaintext = self.__readFromStream(decryption_stream, len_to_read)
-    self.assertEquals(self.input_data, plaintext,
+    self.assertEqual(self.input_data, plaintext,
                       'Active not equals for buffer:%d, read len:%d, src:%s' %(
                         stream_buffer_size,
                         len_to_read,
@@ -154,7 +167,7 @@ class BaseCrypterTest(unittest.TestCase):
       decoder=decoder,
       buffer_size=stream_buffer_size)
     plaintext = self.__readFromStream(decryption_stream, len_to_read)
-    self.assertEquals(self.input_data, plaintext,
+    self.assertEqual(self.input_data, plaintext,
                       'Primary not equals for buffer:%d, read len:%d, src:%s' %(
                         stream_buffer_size,
                         len_to_read,
@@ -165,11 +178,11 @@ class BaseCrypterTest(unittest.TestCase):
     crypter = keyczar.Crypter.Read(os.path.join(TEST_DATA, subdir))
     ciphertext = crypter.Encrypt(self.input_data)
     plaintext = crypter.Decrypt(ciphertext)
-    self.assertEquals(self.input_data, plaintext)
+    self.assertEqual(self.input_data, plaintext)
 
     reflowed_ciphertext = self.__simulateReflow(ciphertext)
     plaintext = crypter.Decrypt(reflowed_ciphertext)
-    self.assertEquals(self.input_data, plaintext)
+    self.assertEqual(self.input_data, plaintext)
 
     self.__testEncryptAndDecryptUnencoded(subdir)
 
@@ -181,7 +194,7 @@ class BaseCrypterTest(unittest.TestCase):
     except:
         pass
     plaintext = crypter.Decrypt(ciphertext, decoder=None)
-    self.assertEquals(self.input_data, plaintext)
+    self.assertEqual(self.input_data, plaintext)
 
   def __testStandardEncryptAndStreamDecrypt(self, subdir,
                                             input_data,
@@ -203,11 +216,11 @@ class BaseCrypterTest(unittest.TestCase):
       decoder=decoder,
       buffer_size=stream_buffer_size)
     plaintext = self.__readFromStream(decryption_stream, len_to_read)
-    self.assertEquals(len(input_data), len(plaintext),
+    self.assertEqual(len(input_data), len(plaintext),
                       'Wrong length for buffer:%d, read len:%d'
                       %(stream_buffer_size,
                         len_to_read))
-    self.assertEquals(input_data, plaintext,
+    self.assertEqual(input_data, plaintext,
                       'Not equals for buffer:%d, read len:%d'
                       %(stream_buffer_size,
                         len_to_read))
@@ -233,11 +246,11 @@ class BaseCrypterTest(unittest.TestCase):
     encryption_stream.close()
     ciphertext = ciphertext_stream.getvalue()
     plaintext = crypter.Decrypt(ciphertext, decoder=decoder)
-    self.assertEquals(len(input_data), len(plaintext),
+    self.assertEqual(len(input_data), len(plaintext),
                       'Wrong length for buffer:%d, write len:%d'
                       %(stream_buffer_size,
                         len_to_write))
-    self.assertEquals(input_data, plaintext,
+    self.assertEqual(input_data, plaintext,
                       'Not equals for buffer:%d, write len:%d'
                       %(stream_buffer_size,
                         len_to_write))
@@ -269,11 +282,11 @@ class BaseCrypterTest(unittest.TestCase):
       decoder=decoder,
       buffer_size=stream_buffer_size)
     plaintext = self.__readFromStream(decryption_stream, len_to_rw)
-    self.assertEquals(len(input_data), len(plaintext),
+    self.assertEqual(len(input_data), len(plaintext),
                       'Wrong length for buffer:%d, r/w len:%d'
                       %(stream_buffer_size,
                         len_to_rw))
-    self.assertEquals(input_data, plaintext,
+    self.assertEqual(input_data, plaintext,
                       'Not equals for buffer:%d, r/w len:%d'
                       %(stream_buffer_size,
                         len_to_rw))
@@ -413,7 +426,7 @@ class BaseCrypterTest(unittest.TestCase):
     decryption_stream = crypter.CreateDecryptingStreamReader(
       PseudoBlockingStream(ciphertext))
     result = self.__readFromStream(decryption_stream, len_to_read=-1)
-    self.assertEquals(self.input_data, result)
+    self.assertEqual(self.input_data, result)
 
   def testStreamDecryptHandlesIOModuleBlockingExceptionRaised(self):
     """
@@ -459,7 +472,7 @@ class BaseCrypterTest(unittest.TestCase):
     decryption_stream = crypter.CreateDecryptingStreamReader(
       PseudoBlockingStream(ciphertext))
     result = self.__readFromStream(decryption_stream, len_to_read=-1)
-    self.assertEquals(self.input_data, result)
+    self.assertEqual(self.input_data, result)
 
   def tearDown(self):
     self.input_data = None
@@ -492,7 +505,7 @@ class PyCryptoM2CryptoInteropTest(unittest.TestCase):
 
       # ensure PyCrypto chosen
       keys.ACTIVE_CRYPT_LIB = 'pycrypto'
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(aeskey.Encrypt(s)), s,
         'Cannot encrypt/decrypt with the same PyCrypto key! size:%s' %size
       )
@@ -500,28 +513,28 @@ class PyCryptoM2CryptoInteropTest(unittest.TestCase):
 
       # now switch to M2Crypto
       keys.ACTIVE_CRYPT_LIB = 'm2crypto'
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(aeskey.Encrypt(s)), s,
         'Cannot encrypt/decrypt with the same M2Crypto key! size:%s' %size
       )
       m2crypto_encrypted_str = aeskey.Encrypt(s)
 
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(pycrypto_encrypted_str), s,
         'Cannot decrypt PyCrypto with M2Crypto key! size:%s' %size
       )
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(m2crypto_encrypted_str), s,
         'Cannot decrypt M2Crypto with M2Crypto key! size:%s' %size
       )
 
       # now switch to PyCrypto
       keys.ACTIVE_CRYPT_LIB = 'pycrypto'
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(pycrypto_encrypted_str), s,
         'Cannot decrypt PyCrypto with PyCrypto key! size:%s' %size
       )
-      self.assertEquals(
+      self.assertEqual(
         aeskey.Decrypt(m2crypto_encrypted_str), s,
         'Cannot decrypt M2Crypto with PyCrypto key! size:%s' %size
       )

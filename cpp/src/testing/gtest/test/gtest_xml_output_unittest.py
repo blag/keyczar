@@ -127,16 +127,16 @@ class GTestXMLOutputUnitTest(gtest_xml_test_utils.GTestXMLTestCase):
                                    "gtest_no_test_unittest")
     try:
       os.remove(output_file)
-    except OSError, e:
+    except OSError as e:
       if e.errno != errno.ENOENT:
         raise
 
     p = gtest_test_utils.Subprocess(
         [gtest_prog_path, "%s=xml" % GTEST_OUTPUT_FLAG],
         working_dir=temp_dir)
-    self.assert_(p.exited)
-    self.assertEquals(0, p.exit_code)
-    self.assert_(os.path.isfile(output_file))
+    self.assertTrue(p.exited)
+    self.assertEqual(0, p.exit_code)
+    self.assertTrue(os.path.isfile(output_file))
 
 
   def _TestXmlOutput(self, gtest_prog_name, expected_xml, expected_exit_code):
@@ -154,11 +154,11 @@ class GTestXMLOutputUnitTest(gtest_xml_test_utils.GTestXMLTestCase):
     command = [gtest_prog_path, "%s=xml:%s" % (GTEST_OUTPUT_FLAG, xml_path)]
     p = gtest_test_utils.Subprocess(command)
     if p.terminated_by_signal:
-      self.assert_(False,
+      self.assertTrue(False,
                    "%s was killed by signal %d" % (gtest_prog_name, p.signal))
     else:
-      self.assert_(p.exited)
-      self.assertEquals(expected_exit_code, p.exit_code,
+      self.assertTrue(p.exited)
+      self.assertEqual(expected_exit_code, p.exit_code,
                         "'%s' exited with code %s, which doesn't match "
                         "the expected exit code %s."
                         % (command, p.exit_code, expected_exit_code))

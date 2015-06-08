@@ -229,7 +229,7 @@ class GTestOutputTest(unittest.TestCase):
 
     # We want the test to pass regardless of death tests being
     # supported or not.
-    self.assert_(output == golden or
+    self.assertTrue(output == golden or
                  RemoveTestCounts(output) ==
                  RemoveTestCounts(RemoveDeathTests(golden)))
 

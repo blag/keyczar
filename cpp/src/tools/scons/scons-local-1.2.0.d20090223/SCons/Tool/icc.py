@@ -33,7 +33,7 @@ selection method.
 
 __revision__ = "src/engine/SCons/Tool/icc.py 4043 2009/02/23 09:06:45 scons"
 
-import cc
+from . import cc
 
 def generate(env):
     """Add Builders and construction variables for the OS/2 to an Environment."""

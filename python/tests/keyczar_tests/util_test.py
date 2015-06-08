@@ -22,7 +22,7 @@ Testcases to test behavior of Keyczar utils.
 
 import unittest
 import base64
-import StringIO
+import io
 import random
 import os
 
@@ -44,8 +44,8 @@ class Base64WSStreamingReadTest(unittest.TestCase):
 
   def __testRead(self, input_data, expected_result):
     for size in [1, 5, 4096, 99999, -1]:
-      stream = util.IncrementalBase64WSStreamReader(StringIO.StringIO(input_data))
-      self.assertEquals(self.__readStream(stream, size), expected_result)
+      stream = util.IncrementalBase64WSStreamReader(io.StringIO(input_data))
+      self.assertEqual(self.__readStream(stream, size), expected_result)
 
   def testNoPadRead(self):
     no_pad_data = 'Some inspired test datum'
@@ -74,14 +74,14 @@ class Base64WSStreamingReadTest(unittest.TestCase):
     'AJehaFGwoOrkzpDCnF1zqIi721eCOMYWRmLyRyn3hxyhh_mYwpnDN6jKN057gr5lz' \
             'APFYhq9zoDwFMaGMEipEl__ECOZGeaxWw'
     expected_result = util.Base64WSDecode(enc_data)
-    stream = util.IncrementalBase64WSStreamReader(StringIO.StringIO(enc_data))
+    stream = util.IncrementalBase64WSStreamReader(io.StringIO(enc_data))
     result = stream.read(5)
     result += stream.read(15)
     read_data = True
     while read_data:
       read_data = stream.read(4096)
       result += read_data
-    self.assertEquals(result, expected_result)
+    self.assertEqual(result, expected_result)
 
 class ParseX509Test(unittest.TestCase):
   
@@ -96,8 +96,8 @@ class ParseX509Test(unittest.TestCase):
         'l9d+zbuoBc4YMASUZa+vKqRZ3a+d15WdlBjtEzB2NbBbnbCJKjfGSmOCbg=='
     params = util.ParseX509(publickey)
     expected = {
-        'q': 1131081433714279493125447137485919672696369887159L, 
-        'p': long(
+        'q': 1131081433714279493125447137485919672696369887159, 
+        'p': int(
             '142769326027561200015702846633037171844738546159067892543586' + 
             '089819169405771071960306351240015809035099105692642283483274' + 
             '608612927770127886695041551320596560058685767748528711711436' + 
@@ -105,7 +105,7 @@ class ParseX509Test(unittest.TestCase):
             '775238247767249458127174935432419747620377588855197434035039' +
             '449870211L'
             ), 
-        'y': long(
+        'y': int(
             '150538549060345519581302552574691577464375345311526809670286' +
             '632129938599078813029403767119263752107859825857360955403210' +
             '483822181224937742908787267712756285866859569379427477824560' +
@@ -113,7 +113,7 @@ class ParseX509Test(unittest.TestCase):
             '684991017869376251632455719760930339224531116502262910706269' +
             '32425326L'
             ), 
-        'g': long(
+        'g': int(
             '494970673920668377956046733315341969794517742954883725248168' +
             '301122249691271552495885761534156140297218760038024832456713' +
             '075235324022590936023023330095636324540517029462960508640485' +
@@ -122,9 +122,9 @@ class ParseX509Test(unittest.TestCase):
             '50905775L'
             )
     }
-    self.assertEquals(len(expected),len(params))
+    self.assertEqual(len(expected),len(params))
     for key in expected:
-      self.assertEquals(expected[key],params[key])
+      self.assertEqual(expected[key],params[key])
 
 
 class Base64WSStreamingWriteTest(unittest.TestCase):
@@ -136,7 +136,7 @@ class Base64WSStreamingWriteTest(unittest.TestCase):
       expected_result = expected_result[:-1]
 
     for size in [1, 5, 4096, random.randrange(1, 9999), -1]:
-      output_stream = StringIO.StringIO()
+      output_stream = io.StringIO()
       stream = util.IncrementalBase64WSStreamWriter(output_stream)
       i = 0
       if size >= 0:
@@ -146,7 +146,7 @@ class Base64WSStreamingWriteTest(unittest.TestCase):
       else:
         stream.write(input_data)
       stream.flush()
-      self.assertEquals(output_stream.getvalue(), expected_result)
+      self.assertEqual(output_stream.getvalue(), expected_result)
 
   def testNoPadWrite(self):
     no_pad_data = 'Some inspired test datum'

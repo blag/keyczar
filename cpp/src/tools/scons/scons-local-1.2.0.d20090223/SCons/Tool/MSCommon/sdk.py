@@ -76,7 +76,7 @@ class SDKDefinition:
 
         try:
             sdk_dir = read_reg(hkey)
-        except WindowsError, e:
+        except WindowsError as e:
             debug('find_sdk_dir(): no registry key %s' % hkey)
             return None
 
@@ -106,7 +106,7 @@ class WindowsSDK(SDKDefinition):
     """
     HKEY_FMT = r'Software\Microsoft\Microsoft SDKs\Windows\v%s\InstallationFolder'
     def __init__(self, *args, **kw):
-        apply(SDKDefinition.__init__, (self,)+args, kw)
+        SDKDefinition.__init__(*(self,)+args, **kw)
         self.hkey_data = self.version
 
 class PlatformSDK(SDKDefinition):
@@ -115,7 +115,7 @@ class PlatformSDK(SDKDefinition):
     """
     HKEY_FMT = r'Software\Microsoft\MicrosoftSDK\InstalledSDKS\%s\Install Dir'
     def __init__(self, *args, **kw):
-        apply(SDKDefinition.__init__, (self,)+args, kw)
+        SDKDefinition.__init__(*(self,)+args, **kw)
         self.hkey_data = self.uuid
 
 # The list of support SDKs which we know how to detect.
@@ -217,7 +217,7 @@ def get_cur_sdk_dir_from_reg():
     try:
         val = read_reg(_CURINSTALLED_SDK_HKEY_ROOT)
         debug("Found current sdk dir in registry: %s" % val)
-    except WindowsError, e:
+    except WindowsError as e:
         debug("Did not find current sdk in registry")
         return None
 
@@ -232,14 +232,14 @@ def detect_sdk():
     return (len(get_installed_sdks()) > 0)
 
 def set_sdk_by_version(env, mssdk):
-    if not SupportedSDKMap.has_key(mssdk):
+    if mssdk not in SupportedSDKMap:
         msg = "SDK version %s is not supported" % repr(mssdk)
-        raise SCons.Errors.UserError, msg
+        raise SCons.Errors.UserError(msg)
     get_installed_sdks()
     sdk = InstalledSDKMap.get(mssdk)
     if not sdk:
         msg = "SDK version %s is not installed" % repr(mssdk)
-        raise SCons.Errors.UserError, msg
+        raise SCons.Errors.UserError(msg)
     set_sdk_by_directory(env, sdk.get_sdk_dir())
 
 def set_default_sdk(env, msver):

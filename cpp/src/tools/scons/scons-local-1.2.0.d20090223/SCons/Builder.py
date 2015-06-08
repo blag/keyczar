@@ -101,7 +101,7 @@ There are the following methods for internal use within this module:
 __revision__ = "src/engine/SCons/Builder.py 4043 2009/02/23 09:06:45 scons"
 
 import UserDict
-import UserList
+import collections
 
 import SCons.Action
 from SCons.Debug import logInstanceCreation
@@ -120,10 +120,11 @@ _null = _Null
 
 def match_splitext(path, suffixes = []):
     if suffixes:
-        matchsuf = filter(lambda S,path=path: path[-len(S):] == S,
-                          suffixes)
+        matchsuf = list(filter(lambda S,path=path: path[-len(S):] == S,
+                          suffixes))
         if matchsuf:
-            suf = max(map(None, map(len, matchsuf), matchsuf))[1]
+            #suf = max(map(None, list(map(len, matchsuf)), matchsuf))[1]
+            suf = max(matchsuf, key=len)
             return [path[:-len(suf)], path[-len(suf):]]
     return SCons.Util.splitext(path)
 
@@ -139,7 +140,7 @@ class DictCmdGenerator(SCons.Util.Selector):
         self.source_ext_match = source_ext_match
 
     def src_suffixes(self):
-        return self.keys()
+        return list(self.keys())
 
     def add_action(self, suffix, action):
         """Add a suffix-action pair to the mapping.
@@ -156,22 +157,22 @@ class DictCmdGenerator(SCons.Util.Selector):
             for src in map(str, source):
                 my_ext = match_splitext(src, suffixes)[1]
                 if ext and my_ext != ext:
-                    raise UserError("While building `%s' from `%s': Cannot build multiple sources with different extensions: %s, %s" % (repr(map(str, target)), src, ext, my_ext))
+                    raise UserError("While building `%s' from `%s': Cannot build multiple sources with different extensions: %s, %s" % (repr(list(map(str, target))), src, ext, my_ext))
                 ext = my_ext
         else:
             ext = match_splitext(str(source[0]), self.src_suffixes())[1]
 
         if not ext:
             #return ext
-            raise UserError("While building `%s': Cannot deduce file extension from source files: %s" % (repr(map(str, target)), repr(map(str, source))))
+            raise UserError("While building `%s': Cannot deduce file extension from source files: %s" % (repr(list(map(str, target))), repr(list(map(str, source)))))
 
         try:
             ret = SCons.Util.Selector.__call__(self, env, source, ext)
-        except KeyError, e:
+        except KeyError as e:
             raise UserError("Ambiguous suffixes after environment substitution: %s == %s == %s" % (e[0], e[1], e[2]))
         if ret is None:
             raise UserError("While building `%s' from `%s': Don't know how to build from a source file with suffix `%s'.  Expected a suffix in this list: %s." % \
-                            (repr(map(str, target)), repr(map(str, source)), ext, repr(self.keys())))
+                            (repr(list(map(str, target))), repr(list(map(str, source))), ext, repr(list(self.keys()))))
         return ret
 
 class CallableSelector(SCons.Util.Selector):
@@ -179,7 +180,7 @@ class CallableSelector(SCons.Util.Selector):
     finds if it can."""
     def __call__(self, env, source):
         value = SCons.Util.Selector.__call__(self, env, source)
-        if callable(value):
+        if isinstance(value, collections.Callable):
             value = value(env, source)
         return value
 
@@ -197,7 +198,7 @@ class DictEmitter(SCons.Util.Selector):
             target, source = emitter(target, source, env)
         return (target, source)
 
-class ListEmitter(UserList.UserList):
+class ListEmitter(collections.UserList):
     """A callable list of emitters that calls each in sequence,
     returning the result.
     """
@@ -230,8 +231,8 @@ class OverrideWarner(UserDict.UserDict):
     def warn(self):
         if self.already_warned:
             return
-        for k in self.keys():
-            if misleading_keywords.has_key(k):
+        for k in list(self.keys()):
+            if k in misleading_keywords:
                 alt = misleading_keywords[k]
                 msg = "Did you mean to use `%s' instead of `%s'?" % (alt, k)
                 SCons.Warnings.warn(SCons.Warnings.MisleadingKeywordsWarning, msg)
@@ -240,14 +241,14 @@ class OverrideWarner(UserDict.UserDict):
 def Builder(**kw):
     """A factory for builder objects."""
     composite = None
-    if kw.has_key('generator'):
-        if kw.has_key('action'):
-            raise UserError, "You must not specify both an action and a generator."
+    if 'generator' in kw:
+        if 'action' in kw:
+            raise UserError("You must not specify both an action and a generator.")
         kw['action'] = SCons.Action.CommandGeneratorAction(kw['generator'], {})
         del kw['generator']
-    elif kw.has_key('action'):
+    elif 'action' in kw:
         source_ext_match = kw.get('source_ext_match', 1)
-        if kw.has_key('source_ext_match'):
+        if 'source_ext_match' in kw:
             del kw['source_ext_match']
         if SCons.Util.is_Dict(kw['action']):
             composite = DictCmdGenerator(kw['action'], source_ext_match)
@@ -256,7 +257,7 @@ def Builder(**kw):
         else:
             kw['action'] = SCons.Action.Action(kw['action'])
 
-    if kw.has_key('emitter'):
+    if 'emitter' in kw:
         emitter = kw['emitter']
         if SCons.Util.is_String(emitter):
             # This allows users to pass in an Environment
@@ -265,14 +266,14 @@ def Builder(**kw):
             # a callable to use as the actual emitter.
             var = SCons.Util.get_environment_var(emitter)
             if not var:
-                raise UserError, "Supplied emitter '%s' does not appear to refer to an Environment variable" % emitter
+                raise UserError("Supplied emitter '%s' does not appear to refer to an Environment variable" % emitter)
             kw['emitter'] = EmitterProxy(var)
         elif SCons.Util.is_Dict(emitter):
             kw['emitter'] = DictEmitter(emitter)
         elif SCons.Util.is_List(emitter):
             kw['emitter'] = ListEmitter(emitter)
 
-    result = apply(BuilderBase, (), kw)
+    result = BuilderBase(*(), **kw)
 
     if not composite is None:
         result = CompositeBuilder(result, composite)
@@ -289,7 +290,7 @@ def _node_errors(builder, env, tlist, slist):
     # were specified.
     for t in tlist:
         if t.side_effect:
-            raise UserError, "Multiple ways to build the same target were specified for: %s" % t
+            raise UserError("Multiple ways to build the same target were specified for: %s" % t)
         if t.has_explicit_builder():
             if not t.env is None and not t.env is env:
                 action = t.builder.action
@@ -301,22 +302,22 @@ def _node_errors(builder, env, tlist, slist):
                     SCons.Warnings.warn(SCons.Warnings.DuplicateEnvironmentWarning, msg)
                 else:
                     msg = "Two environments with different actions were specified for the same target: %s" % t
-                    raise UserError, msg
+                    raise UserError(msg)
             if builder.multi:
                 if t.builder != builder:
                     msg = "Two different builders (%s and %s) were specified for the same target: %s" % (t.builder.get_name(env), builder.get_name(env), t)
-                    raise UserError, msg
+                    raise UserError(msg)
                 # TODO(batch):  list constructed each time!
                 if t.get_executor().get_all_targets() != tlist:
-                    msg = "Two different target lists have a target in common: %s  (from %s and from %s)" % (t, map(str, t.get_executor().get_all_targets()), map(str, tlist))
-                    raise UserError, msg
+                    msg = "Two different target lists have a target in common: %s  (from %s and from %s)" % (t, list(map(str, t.get_executor().get_all_targets())), list(map(str, tlist)))
+                    raise UserError(msg)
             elif t.sources != slist:
-                msg = "Multiple ways to build the same target were specified for: %s  (from %s and from %s)" % (t, map(str, t.sources), map(str, slist))
-                raise UserError, msg
+                msg = "Multiple ways to build the same target were specified for: %s  (from %s and from %s)" % (t, list(map(str, t.sources)), list(map(str, slist)))
+                raise UserError(msg)
 
     if builder.single_source:
         if len(slist) > 1:
-            raise UserError, "More than one source given for single-source builder: targets=%s sources=%s" % (map(str,tlist), map(str,slist))
+            raise UserError("More than one source given for single-source builder: targets=%s sources=%s" % (list(map(str,tlist)), list(map(str,slist))))
 
 class EmitterProxy:
     """This is a callable class that can act as a
@@ -334,9 +335,9 @@ class EmitterProxy:
         # Recursively substitute the variable.
         # We can't use env.subst() because it deals only
         # in strings.  Maybe we should change that?
-        while SCons.Util.is_String(emitter) and env.has_key(emitter):
+        while SCons.Util.is_String(emitter) and emitter in env:
             emitter = env[emitter]
-        if callable(emitter):
+        if isinstance(emitter, collections.Callable):
             target, source = emitter(target, source, env)
         elif SCons.Util.is_List(emitter):
             for e in emitter:
@@ -387,13 +388,13 @@ class BuilderBase:
             suffix = CallableSelector(suffix)
         self.env = env
         self.single_source = single_source
-        if overrides.has_key('overrides'):
+        if 'overrides' in overrides:
             SCons.Warnings.warn(SCons.Warnings.DeprecatedWarning,
                 "The \"overrides\" keyword to Builder() creation has been deprecated;\n" +\
                 "\tspecify the items as keyword arguments to the Builder() call instead.")
             overrides.update(overrides['overrides'])
             del overrides['overrides']
-        if overrides.has_key('scanner'):
+        if 'scanner' in overrides:
             SCons.Warnings.warn(SCons.Warnings.DeprecatedWarning,
                                 "The \"scanner\" keyword to Builder() creation has been deprecated;\n"
                                 "\tuse: source_scanner or target_scanner as appropriate.")
@@ -426,8 +427,8 @@ class BuilderBase:
             src_builder = [ src_builder ]
         self.src_builder = src_builder
 
-    def __nonzero__(self):
-        raise InternalError, "Do not test for the Node.builder attribute directly; use Node.has_builder() instead"
+    def __bool__(self):
+        raise InternalError("Do not test for the Node.builder attribute directly; use Node.has_builder() instead")
 
     def get_name(self, env):
         """Attempts to get the name of the Builder.
@@ -438,8 +439,8 @@ class BuilderBase:
         name (if there is one) or the name of the class (by default)."""
 
         try:
-            index = env['BUILDERS'].values().index(self)
-            return env['BUILDERS'].keys()[index]
+            index = list(env['BUILDERS'].values()).index(self)
+            return list(env['BUILDERS'].keys())[index]
         except (AttributeError, KeyError, TypeError, ValueError):
             try:
                 return self.name
@@ -573,8 +574,8 @@ class BuilderBase:
         if executor is None:
             if not self.action:
                 fmt = "Builder %s must have an action to build %s."
-                raise UserError, fmt % (self.get_name(env or self.env),
-                                        map(str,tlist))
+                raise UserError(fmt % (self.get_name(env or self.env),
+                                        list(map(str,tlist))))
             key = self.action.batch_key(env or self.env, tlist, slist)
             if key:
                 try:
@@ -611,7 +612,7 @@ class BuilderBase:
             ekw = self.executor_kw.copy()
             ekw['chdir'] = chdir
         if kw:
-            if kw.has_key('srcdir'):
+            if 'srcdir' in kw:
                 def prependDirIfRelative(f, srcdir=kw['srcdir']):
                     import os.path
                     if SCons.Util.is_String(f) and not os.path.isabs(f):
@@ -619,7 +620,7 @@ class BuilderBase:
                     return f
                 if not SCons.Util.is_List(source):
                     source = [source]
-                source = map(prependDirIfRelative, source)
+                source = list(map(prependDirIfRelative, source))
                 del kw['srcdir']
             if self.overrides:
                 env_kw = self.overrides.copy()
@@ -638,18 +639,18 @@ class BuilderBase:
 
     def get_prefix(self, env, sources=[]):
         prefix = self.prefix
-        if callable(prefix):
+        if isinstance(prefix, collections.Callable):
             prefix = prefix(env, sources)
         return env.subst(prefix)
 
     def set_suffix(self, suffix):
-        if not callable(suffix):
+        if not isinstance(suffix, collections.Callable):
             suffix = self.adjust_suffix(suffix)
         self.suffix = suffix
 
     def get_suffix(self, env, sources=[]):
         suffix = self.suffix
-        if callable(suffix):
+        if isinstance(suffix, collections.Callable):
             suffix = suffix(env, sources)
         return env.subst(suffix)
 
@@ -659,8 +660,8 @@ class BuilderBase:
         elif not SCons.Util.is_List(src_suffix):
             src_suffix = [ src_suffix ]
         adjust = lambda suf, s=self: \
-                        callable(suf) and suf or s.adjust_suffix(suf)
-        self.src_suffix = map(adjust, src_suffix)
+                        isinstance(suf, collections.Callable) and suf or s.adjust_suffix(suf)
+        self.src_suffix = list(map(adjust, src_suffix))
 
     def get_src_suffix(self, env):
         """Get the first src_suffix in the list of src_suffixes."""
@@ -723,7 +724,7 @@ class BuilderBase:
         lengths = list(set(map(len, src_suffixes)))
 
         def match_src_suffix(name, src_suffixes=src_suffixes, lengths=lengths):
-            node_suffixes = map(lambda l, n=name: n[-l:], lengths)
+            node_suffixes = list(map(lambda l, n=name: n[-l:], lengths))
             for suf in src_suffixes:
                 if suf in node_suffixes:
                     return suf
@@ -750,7 +751,7 @@ class BuilderBase:
                     # Builder isn't capable of building.
                     if len(tlist) > 1:
                         mss = lambda t, m=match_src_suffix: m(t.name)
-                        tlist = filter(mss, tlist)
+                        tlist = list(filter(mss, tlist))
                     result.extend(tlist)
             else:
                 result.append(s)
@@ -819,7 +820,7 @@ class BuilderBase:
                 return memo_dict[memo_key]
             except KeyError:
                 pass
-        suffixes = map(lambda x, s=self, e=env: e.subst(x), self.src_suffix)
+        suffixes = list(map(lambda x, s=self, e=env: e.subst(x), self.src_suffix))
         memo_dict[memo_key] = suffixes
         return suffixes
 
@@ -838,7 +839,7 @@ class BuilderBase:
             sdict[s] = 1
         for builder in self.get_src_builders(env):
             for s in builder.src_suffixes(env):
-                if not sdict.has_key(s):
+                if s not in sdict:
                     sdict[s] = 1
                     suffixes.append(s)
         return suffixes

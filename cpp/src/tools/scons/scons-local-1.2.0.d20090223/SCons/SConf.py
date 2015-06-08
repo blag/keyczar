@@ -31,7 +31,7 @@ __revision__ = "src/engine/SCons/SConf.py 4043 2009/02/23 09:06:45 scons"
 import os
 import re
 import string
-import StringIO
+import io
 import sys
 import traceback
 import types
@@ -79,7 +79,7 @@ def SetCacheMode(mode):
     elif mode == "cache":
         cache_mode = CACHE
     else:
-        raise ValueError, "SCons.SConf.SetCacheMode: Unknown mode " + mode
+        raise ValueError("SCons.SConf.SetCacheMode: Unknown mode " + mode)
 
 progress_display = SCons.Util.display # will be overwritten by SCons.Script
 def SetProgressDisplay(display):
@@ -118,7 +118,7 @@ def CreateConfigHBuilder(env):
                                  _stringConfigH)
     sconfigHBld = SCons.Builder.Builder(action=action)
     env.Append( BUILDERS={'SConfigHBuilder':sconfigHBld} )
-    for k in _ac_config_hs.keys():
+    for k in list(_ac_config_hs.keys()):
         env.SConfigHBuilder(k, env.Value(_ac_config_hs[k]))
     
 class SConfWarning(SCons.Warnings.Warning):
@@ -157,8 +157,8 @@ def _stringSource( target, source, env ):
                             '\n', "\n  |" ) )
 
 # python 2.2 introduces types.BooleanType
-BooleanTypes = [types.IntType]
-if hasattr(types, 'BooleanType'): BooleanTypes.append(types.BooleanType)
+BooleanTypes = [int]
+if hasattr(types, 'BooleanType'): BooleanTypes.append(bool)
 
 class SConfBuildInfo(SCons.Node.FS.FileBuildInfo):
     """
@@ -180,7 +180,7 @@ class Streamer:
     """
     def __init__(self, orig):
         self.orig = orig
-        self.s = StringIO.StringIO()
+        self.s = io.StringIO()
 
     def write(self, str):
         if self.orig:
@@ -245,8 +245,8 @@ class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
                 # Earlier versions of Python don't have sys.excepthook...
                 def excepthook(type, value, tb):
                     traceback.print_tb(tb)
-                    print type, value
-            apply(excepthook, self.exc_info())
+                    print(type, value)
+            excepthook(*self.exc_info())
         return SCons.Taskmaster.Task.failed(self)
 
     def collect_node_states(self):
@@ -337,7 +337,7 @@ class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
             except SystemExit:
                 exc_value = sys.exc_info()[1]
                 raise SCons.Errors.ExplicitExit(self.targets[0],exc_value.code)
-            except Exception, e:
+            except Exception as e:
                 for t in self.targets:
                     binfo = t.get_binfo()
                     binfo.__class__ = SConfBuildInfo
@@ -399,8 +399,7 @@ class SConfBase:
             SConfFS = SCons.Node.FS.default_fs or \
                       SCons.Node.FS.FS(env.fs.pathTop)
         if not sconf_global is None:
-            raise (SCons.Errors.UserError,
-                   "Only one SConf object may be active at one time")
+            raise SCons.Errors.UserError
         self.env = env
         if log_file != None:
             log_file = SConfFS.File(env.subst(log_file))
@@ -641,10 +640,9 @@ class SConfBase:
             self.sconf = sconf
         def __call__(self, *args, **kw):
             if not self.sconf.active:
-                raise (SCons.Errors.UserError,
-                       "Test called after sconf.Finish()")
+                raise SCons.Errors.UserError
             context = CheckContext(self.sconf)
-            ret = apply(self.test, (context,) +  args, kw)
+            ret = self.test(*(context,) +  args, **kw)
             if not self.sconf.config_h is None:
                 self.sconf.config_h_text = self.sconf.config_h_text + context.config_h
             context.Result("error: no result")
@@ -659,7 +657,7 @@ class SConfBase:
         """Adds all the tests given in the tests dictionary to this SConf
         instance
         """
-        for name in tests.keys():
+        for name in list(tests.keys()):
             self.AddTest(name, tests[name])
 
     def _createDir( self, node ):
@@ -688,7 +686,7 @@ class SConfBase:
         if self.logfile != None and not dryrun:
             # truncate logfile, if SConf.Configure is called for the first time
             # in a build
-            if _ac_config_logs.has_key(self.logfile):
+            if self.logfile in _ac_config_logs:
                 log_mode = "a"
             else:
                 _ac_config_logs[self.logfile] = None
@@ -723,7 +721,7 @@ class SConfBase:
         global sconf_global, _ac_config_hs
 
         if not self.active:
-            raise SCons.Errors.UserError, "Finish may be called only once!"
+            raise SCons.Errors.UserError("Finish may be called only once!")
         if self.logstream != None and not dryrun:
             self.logstream.write("\n")
             self.logstream.close()
@@ -793,10 +791,10 @@ class CheckContext:
                 text = "yes"
             else:
                 text = "no"
-        elif type(res) == types.StringType:
+        elif type(res) == bytes:
             text = res
         else:
-            raise TypeError, "Expected string, int or bool, got " + str(type(res))
+            raise TypeError("Expected string, int or bool, got " + str(type(res)))
 
         if self.did_show_result == 0:
             # Didn't show result yet, do it now.
@@ -804,19 +802,19 @@ class CheckContext:
             self.did_show_result = 1
 
     def TryBuild(self, *args, **kw):
-        return apply(self.sconf.TryBuild, args, kw)
+        return self.sconf.TryBuild(*args, **kw)
 
     def TryAction(self, *args, **kw):
-        return apply(self.sconf.TryAction, args, kw)
+        return self.sconf.TryAction(*args, **kw)
 
     def TryCompile(self, *args, **kw):
-        return apply(self.sconf.TryCompile, args, kw)
+        return self.sconf.TryCompile(*args, **kw)
 
     def TryLink(self, *args, **kw):
-        return apply(self.sconf.TryLink, args, kw)
+        return self.sconf.TryLink(*args, **kw)
 
     def TryRun(self, *args, **kw):
-        return apply(self.sconf.TryRun, args, kw)
+        return self.sconf.TryRun(*args, **kw)
 
     def __getattr__( self, attr ):
         if( attr == 'env' ):
@@ -824,7 +822,7 @@ class CheckContext:
         elif( attr == 'lastTarget' ):
             return self.sconf.lastTarget
         else:
-            raise AttributeError, "CheckContext instance has no attribute '%s'" % attr
+            raise AttributeError("CheckContext instance has no attribute '%s'" % attr)
 
     #### Stuff used by Conftest.py (look there for explanations).
 
@@ -884,7 +882,7 @@ def SConf(*args, **kw):
                 del kw[bt]
             except KeyError:
                 pass
-        return apply(SConfBase, args, kw)
+        return SConfBase(*args, **kw)
     else:
         return SCons.Util.Null()
 

@@ -10,7 +10,7 @@ import fnmatch
 import os
 import os.path
 import distutils.sysconfig
-import SCons.Defaults
+from . import SCons.Defaults
 
 PREFIX = "prefix"
 EPREFIX = "eprefix"
@@ -48,7 +48,7 @@ class Installer:
                                   distutils.sysconfig.get_python_lib())
         self._env = env
 
-    def Add(self, destdir, name, basedir="", perm=0644):
+    def Add(self, destdir, name, basedir="", perm=0o644):
         destination = os.path.join(destdir, basedir)
         obj = self._env.Install(destination, name)
         self._env.Alias("install", destination)
@@ -60,7 +60,7 @@ class Installer:
 
         @param program The program to install.
         """
-        self.Add(self._bindir, program, perm=0755)
+        self.Add(self._bindir, program, perm=0o755)
 
     def AddLibrary(self, library):
         """ Install a library.

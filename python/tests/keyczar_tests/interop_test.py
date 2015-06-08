@@ -322,7 +322,7 @@ def Generate(
   operation = operations[operation_name]
   current_operation = operation(key_path, test_data)
   output = current_operation.Generate(algorithm, generate_options)
-  print output
+  print(output)
 
 
 def Test(operation_name, output, key_path,
@@ -330,7 +330,7 @@ def Test(operation_name, output, key_path,
   operation = operations[operation_name]
   current_operation = operation(key_path, test_data)
   current_operation.Test(output, algorithm, generate_options, test_options)
-  print "Test passes"
+  print("Test passes")
 
 
 def Usage():

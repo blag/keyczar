@@ -33,7 +33,7 @@ selection method.
 
 __revision__ = "src/engine/SCons/Tool/gcc.py 4043 2009/02/23 09:06:45 scons"
 
-import cc
+from . import cc
 import os
 import re
 import subprocess

@@ -44,12 +44,12 @@ def copyto_emitter(target, source, env):
     n_target = []
 
     for t in target:
-        n_target = n_target + map( lambda s, t=t: t.File( str( s ) ), source )
+        n_target = n_target + list(map( lambda s, t=t: t.File( str( s ) ), source ))
 
     return (n_target, source)
 
 def copy_action_func(target, source, env):
-    assert( len(target) == len(source) ), "\ntarget: %s\nsource: %s" %(map(str, target),map(str, source))
+    assert( len(target) == len(source) ), "\ntarget: %s\nsource: %s" %(list(map(str, target)),list(map(str, source)))
 
     for t, s in zip(target, source):
         if copyFunc(t.get_path(), s.get_path(), env):
@@ -66,7 +66,7 @@ def generate(env):
     try:
         env['BUILDERS']['CopyTo']
         env['BUILDERS']['CopyAs']
-    except KeyError, e:
+    except KeyError as e:
         global copyToBuilder
         if copyToBuilder is None:
             copyToBuilder = SCons.Builder.Builder(

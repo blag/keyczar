@@ -30,7 +30,7 @@ import os
 import re
 import string
 
-from common import read_reg, debug
+from .common import read_reg, debug
 
 # Original value recorded by dcournapeau
 _FRAMEWORKDIR_HKEY_ROOT = r'Software\Microsoft\.NETFramework\InstallRoot'
@@ -42,7 +42,7 @@ def find_framework_root():
     try:
         froot = read_reg(_FRAMEWORKDIR_HKEY_ROOT)
         debug("Found framework install root in registry: %s" % froot)
-    except WindowsError, e:
+    except WindowsError as e:
         debug("Could not read reg key %s" % _FRAMEWORKDIR_HKEY_ROOT)
         return None
 
@@ -58,7 +58,7 @@ def query_versions():
         contents = os.listdir(froot)
 
         l = re.compile('v[0-9]+.*')
-        versions = filter(lambda e, l=l: l.match(e), contents)
+        versions = list(filter(lambda e, l=l: l.match(e), contents))
 
         def versrt(a,b):
             # since version numbers aren't really floats...

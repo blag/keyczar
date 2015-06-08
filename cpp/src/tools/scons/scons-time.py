@@ -31,7 +31,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from __future__ import nested_scopes
+
 
 __revision__ = "src/script/scons-time.py 4043 2009/02/23 09:06:45 scons"
 
@@ -45,20 +45,21 @@ import string
 import sys
 import tempfile
 import time
+import collections
 
 try:
     False
 except NameError:
     # Pre-2.2 Python has no False keyword.
-    import __builtin__
-    __builtin__.False = not 1
+    import builtins
+    builtins.False = not 1
 
 try:
     True
 except NameError:
     # Pre-2.2 Python has no True keyword.
-    import __builtin__
-    __builtin__.True = not 0
+    import builtins
+    builtins.True = not 0
 
 def make_temp_file(**kw):
     try:
@@ -113,7 +114,7 @@ class Line:
 
     def print_label(self, inx, x, y):
         if self.label:
-            print 'set label %s "%s" at %s,%s right' % (inx, self.label, x, y)
+            print('set label %s "%s" at %s,%s right' % (inx, self.label, x, y))
 
     def plot_string(self):
         if self.title:
@@ -126,15 +127,15 @@ class Line:
         if fmt is None:
             fmt = self.fmt
         if self.comment:
-            print '# %s' % self.comment
+            print('# %s' % self.comment)
         for x, y in self.points:
             # If y is None, it usually represents some kind of break
             # in the line's index number.  We might want to represent
             # this some way rather than just drawing the line straight
             # between the two points on either side.
             if not y is None:
-                print fmt % (x, y)
-        print 'e'
+                print(fmt % (x, y))
+        print('e')
 
     def get_x_values(self):
         return [ p[0] for p in self.points ]
@@ -166,13 +167,13 @@ class Gnuplotter(Plotter):
         result = []
         for line in self.lines:
             result.extend(line.get_x_values())
-        return filter(lambda r: not r is None, result)
+        return [r for r in result if not r is None]
 
     def get_all_y_values(self):
         result = []
         for line in self.lines:
             result.extend(line.get_y_values())
-        return filter(lambda r: not r is None, result)
+        return [r for r in result if not r is None]
 
     def get_min_x(self):
         try:
@@ -220,15 +221,15 @@ class Gnuplotter(Plotter):
             return
 
         if self.title:
-            print 'set title "%s"' % self.title
-        print 'set key %s' % self.key_location
+            print('set title "%s"' % self.title)
+        print('set key %s' % self.key_location)
 
         min_y = self.get_min_y()
         max_y = self.max_graph_value(self.get_max_y())
         range = max_y - min_y
         incr = range / 10.0
         start = min_y + (max_y / 2.0) + (2.0 * incr)
-        position = [ start - (i * incr) for i in xrange(5) ]
+        position = [ start - (i * incr) for i in range(5) ]
 
         inx = 1
         for line in self.lines:
@@ -237,7 +238,7 @@ class Gnuplotter(Plotter):
             inx += 1
 
         plot_strings = [ self.plot_string(l) for l in self.lines ]
-        print 'plot ' + ', \\\n     '.join(plot_strings)
+        print('plot ' + ', \\\n     '.join(plot_strings))
 
         for line in self.lines:
             line.print_points()
@@ -424,7 +425,7 @@ class SConsTimer:
         Each message is prepended with a standard prefix of our name
         plus the time.
         """
-        if callable(msg):
+        if isinstance(msg, collections.Callable):
             msg = msg(*args)
         else:
             msg = msg % args
@@ -443,7 +444,7 @@ class SConsTimer:
         The action is called if it's a callable Python function, and
         otherwise passed to os.system().
         """
-        if callable(action):
+        if isinstance(action, collections.Callable):
             action(*args)
         else:
             os.system(action % args)
@@ -511,7 +512,7 @@ class SConsTimer:
         header_fmt = ' '.join(['%12s'] * len(columns))
         line_fmt = header_fmt + '    %s'
 
-        print header_fmt % columns
+        print(header_fmt % columns)
 
         for file in files:
             t = line_function(file, *args, **kw)
@@ -521,7 +522,7 @@ class SConsTimer:
             if diff > 0:
                 t += [''] * diff
             t.append(file_function(file))
-            print line_fmt % tuple(t)
+            print(line_fmt % tuple(t))
 
     def collect_results(self, files, function, *args, **kw):
         results = {}
@@ -566,11 +567,11 @@ class SConsTimer:
         and returns the next run number after the largest it finds.
         """
         x = re.compile(re.escape(prefix) + '-([0-9]+).*')
-        matches = map(lambda e, x=x: x.match(e), os.listdir(dir))
-        matches = filter(None, matches)
+        matches = list(map(lambda e, x=x: x.match(e), os.listdir(dir)))
+        matches = [_f for _f in matches if _f]
         if not matches:
             return 0
-        run_numbers = map(lambda m: int(m.group(1)), matches)
+        run_numbers = [int(m.group(1)) for m in matches]
         return int(max(run_numbers)) + 1
 
     def gnuplot_results(self, results, fmt='%s %.3f'):
@@ -579,7 +580,7 @@ class SConsTimer:
         """
         gp = Gnuplotter(self.title, self.key_location)
 
-        indices = results.keys()
+        indices = list(results.keys())
         indices.sort()
 
         for i in indices:
@@ -664,13 +665,13 @@ class SConsTimer:
         """
         try:
             import pstats
-        except ImportError, e:
+        except ImportError as e:
             sys.stderr.write('%s: func: %s\n' % (self.name, e))
             sys.stderr.write('%s  This version of Python is missing the profiler.\n' % self.name_spaces)
             sys.stderr.write('%s  Cannot use the "func" subcommand.\n' % self.name_spaces)
             sys.exit(1)
         statistics = pstats.Stats(file).stats
-        matches = [ e for e in statistics.items() if e[0][2] == function ]
+        matches = [ e for e in list(statistics.items()) if e[0][2] == function ]
         r = matches[0]
         return r[0][0], r[0][1], r[0][2], r[1][3]
 
@@ -725,7 +726,7 @@ class SConsTimer:
             return self.default(argv)
         try:
             return func(argv)
-        except TypeError, e:
+        except TypeError as e:
             sys.stderr.write("%s %s: %s\n" % (self.name, cmdName, e))
             import traceback
             traceback.print_exc(file=sys.stderr)
@@ -830,7 +831,7 @@ class SConsTimer:
                 self.title = a
 
         if self.config_file:
-            execfile(self.config_file, self.__dict__)
+            exec(compile(open(self.config_file).read(), self.config_file, 'exec'), self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -862,12 +863,12 @@ class SConsTimer:
             def print_function_timing(file, func):
                 try:
                     f, line, func, time = self.get_function_profile(file, func)
-                except ValueError, e:
+                except ValueError as e:
                     sys.stderr.write("%s: func: %s: %s\n" % (self.name, file, e))
                 else:
                     if f.startswith(cwd_):
                         f = f[len(cwd_):]
-                    print "%.3f %s:%d(%s)" % (time, f, line, func)
+                    print("%.3f %s:%d(%s)" % (time, f, line, func))
 
             for file in args:
                 print_function_timing(file, function_name)
@@ -950,7 +951,7 @@ class SConsTimer:
                 self.title = a
 
         if self.config_file:
-            execfile(self.config_file, self.__dict__)
+            exec(compile(open(self.config_file).read(), self.config_file, 'exec'), self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -1070,7 +1071,7 @@ class SConsTimer:
         object_name = args.pop(0)
 
         if self.config_file:
-            execfile(self.config_file, self.__dict__)
+            exec(compile(open(self.config_file).read(), self.config_file, 'exec'), self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -1208,7 +1209,7 @@ class SConsTimer:
             sys.exit(1)
 
         if self.config_file:
-            execfile(self.config_file, self.__dict__)
+            exec(compile(open(self.config_file).read(), self.config_file, 'exec'), self.__dict__)
 
         if args:
             self.archive_list = args
@@ -1238,7 +1239,7 @@ class SConsTimer:
             except ValueError:
                 result.append(int(n))
             else:
-                result.extend(range(int(x), int(y)+1))
+                result.extend(list(range(int(x), int(y)+1)))
         return result
 
     def scons_path(self, dir):
@@ -1441,14 +1442,14 @@ class SConsTimer:
             elif o in ('--title',):
                 self.title = a
             elif o in ('--which',):
-                if not a in self.time_strings.keys():
+                if not a in list(self.time_strings.keys()):
                     sys.stderr.write('%s: time: Unrecognized timer "%s".\n' % (self.name, a))
                     sys.stderr.write('%s  Type "%s help time" for help.\n' % (self.name_spaces, self.name))
                     sys.exit(1)
                 which = a
 
         if self.config_file:
-            execfile(self.config_file, self.__dict__)
+            exec(compile(open(self.config_file).read(), self.config_file, 'exec'), self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)

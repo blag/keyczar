@@ -48,18 +48,18 @@ import SCons.Util
 import SCons.Warnings
 import SCons.Scanner.RC
 
-from MSCommon import merge_default_version, detect_msvs
+from .MSCommon import merge_default_version, detect_msvs
 
 CSuffixes = ['.c', '.C']
 CXXSuffixes = ['.cc', '.cpp', '.cxx', '.c++', '.C++']
 
 def validate_vars(env):
     """Validate the PCH and PCHSTOP construction variables."""
-    if env.has_key('PCH') and env['PCH']:
-        if not env.has_key('PCHSTOP'):
-            raise SCons.Errors.UserError, "The PCHSTOP construction must be defined if PCH is defined."
+    if 'PCH' in env and env['PCH']:
+        if 'PCHSTOP' not in env:
+            raise SCons.Errors.UserError("The PCHSTOP construction must be defined if PCH is defined.")
         if not SCons.Util.is_String(env['PCHSTOP']):
-            raise SCons.Errors.UserError, "The PCHSTOP construction variable must be a string: %r"%env['PCHSTOP']
+            raise SCons.Errors.UserError("The PCHSTOP construction variable must be a string: %r"%env['PCHSTOP'])
 
 def pch_emitter(target, source, env):
     """Adds the object file target."""
@@ -89,7 +89,7 @@ def object_emitter(target, source, env, parent_emitter):
 
     parent_emitter(target, source, env)
 
-    if env.has_key('PCH') and env['PCH']:
+    if 'PCH' in env and env['PCH']:
         env.Depends(target, env['PCH'])
 
     return (target, source)
@@ -235,7 +235,7 @@ def generate(env):
     # Set-up ms tools paths for default version
     merge_default_version(env)
 
-    import mssdk
+    from . import mssdk
     mssdk.generate(env)
 
     env['CFILESUFFIX'] = '.c'
@@ -245,9 +245,9 @@ def generate(env):
     env['PCHCOM'] = '$CXX /Fo${TARGETS[1]} $CXXFLAGS $CCFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS /c $SOURCES /Yc$PCHSTOP /Fp${TARGETS[0]} $CCPDBFLAGS $PCHPDBFLAGS'
     env['BUILDERS']['PCH'] = pch_builder
 
-    if not env.has_key('ENV'):
+    if 'ENV' not in env:
         env['ENV'] = {}
-    if not env['ENV'].has_key('SystemRoot'):    # required for dlls in the winsxs folders
+    if 'SystemRoot' not in env['ENV']:    # required for dlls in the winsxs folders
         env['ENV']['SystemRoot'] = SCons.Platform.win32.get_system_root()
 
 def exists(env):

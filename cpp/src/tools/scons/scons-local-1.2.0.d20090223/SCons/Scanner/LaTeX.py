@@ -60,11 +60,11 @@ def modify_env_var(env, var, abspath):
         if SCons.Util.is_List(env[var]):
             #TODO(1.5)
             #env.PrependENVPath(var, [os.path.abspath(str(p)) for p in env[var]])
-            env.PrependENVPath(var, map(lambda p: os.path.abspath(str(p)), env[var]))
+            env.PrependENVPath(var, [os.path.abspath(str(p)) for p in env[var]])
         else:
             # Split at os.pathsep to convert into absolute path
             #TODO(1.5) env.PrependENVPath(var, [os.path.abspath(p) for p in str(env[var]).split(os.pathsep)])
-            env.PrependENVPath(var, map(lambda p: os.path.abspath(p), string.split(str(env[var]), os.pathsep)))
+            env.PrependENVPath(var, [os.path.abspath(p) for p in string.split(str(env[var]), os.pathsep)])
     except KeyError:
         pass
 
@@ -163,7 +163,7 @@ class LaTeX(SCons.Scanner.Base):
                      'bibliography': 'BIBINPUTS',
                      'bibliographystyle': 'BSTINPUTS',
                      'usepackage': 'TEXINPUTS'}
-    env_variables = SCons.Util.unique(keyword_paths.values())
+    env_variables = SCons.Util.unique(list(keyword_paths.values()))
 
     def __init__(self, name, suffixes, graphics_extensions, *args, **kw):
 
@@ -195,14 +195,14 @@ class LaTeX(SCons.Scanner.Base):
             """
             def __init__(self, dictionary):
                 self.dictionary = {}
-                for k,n in dictionary.items():
+                for k,n in list(dictionary.items()):
                     self.dictionary[k] = ( SCons.Scanner.FindPathDirs(n),
                                            FindENVPathDirs(n) )
 
             def __call__(self, env, dir=None, target=None, source=None,
                                     argument=None):
                 di = {}
-                for k,(c,cENV)  in self.dictionary.items():
+                for k,(c,cENV)  in list(self.dictionary.items()):
                     di[k] = ( c(env, dir=None, target=None, source=None,
                                    argument=None) ,
                               cENV(env, dir=None, target=None, source=None,
@@ -229,7 +229,7 @@ class LaTeX(SCons.Scanner.Base):
         kw['scan_check'] = LaTeXScanCheck(suffixes)
         kw['name'] = name
 
-        apply(SCons.Scanner.Base.__init__, (self,) + args, kw)
+        SCons.Scanner.Base.__init__(*(self,) + args, **kw)
 
     def _latex_names(self, include):
         filename = include[1]
@@ -254,7 +254,7 @@ class LaTeX(SCons.Scanner.Base):
                 #return map(lambda e, f=filename: f+e, self.graphics_extensions + TexGraphics)
                 # use the line above to find dependency for PDF builder when only .eps figure is present
                 # Since it will be found if the user tell scons how to make the pdf figure leave it out for now.
-                return map(lambda e, f=filename: f+e, self.graphics_extensions)
+                return list(map(lambda e, f=filename: f+e, self.graphics_extensions))
         return [filename]
 
     def sort_key(self, include):
@@ -333,7 +333,7 @@ class LaTeX(SCons.Scanner.Base):
                 nodes.append((sortkey, n))
         #
         nodes.sort()
-        nodes = map(lambda pair: pair[1], nodes)
+        nodes = [pair[1] for pair in nodes]
         return nodes
 
 # Local Variables:

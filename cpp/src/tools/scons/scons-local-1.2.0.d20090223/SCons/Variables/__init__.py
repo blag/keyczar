@@ -38,11 +38,11 @@ import SCons.Errors
 import SCons.Util
 import SCons.Warnings
 
-from BoolVariable import BoolVariable  # okay
-from EnumVariable import EnumVariable  # okay
-from ListVariable import ListVariable  # naja
-from PackageVariable import PackageVariable # naja
-from PathVariable import PathVariable # okay
+from .BoolVariable import BoolVariable  # okay
+from .EnumVariable import EnumVariable  # okay
+from .ListVariable import ListVariable  # naja
+from .PackageVariable import PackageVariable # naja
+from .PathVariable import PathVariable # okay
 
 
 class Variables:
@@ -100,7 +100,7 @@ class Variables:
         """
         Returns the keywords for the options
         """
-        return map(lambda o: o.key, self.options)
+        return [o.key for o in self.options]
 
     def Add(self, key, help="", default=None, validator=None, converter=None, **kw):
         """
@@ -116,12 +116,12 @@ class Variables:
         """
 
         if SCons.Util.is_List(key) or type(key) == type(()):
-            apply(self._do_add, key)
+            self._do_add(*key)
             return
 
         if not SCons.Util.is_String(key) or \
            not SCons.Environment.is_valid_construction_var(key):
-            raise SCons.Errors.UserError, "Illegal Variables.Add() key `%s'" % str(key)
+            raise SCons.Errors.UserError("Illegal Variables.Add() key `%s'" % str(key))
 
         self._do_add(key, help, default, validator, converter)
 
@@ -141,7 +141,7 @@ class Variables:
             )
         """
         for o in optlist:
-            apply(self._do_add, o)
+            self._do_add(*o)
 
 
     def Update(self, env, args=None):
@@ -166,7 +166,7 @@ class Variables:
                     sys.path.insert(0, dir)
                 try:
                     values['__name__'] = filename
-                    execfile(filename, {}, values)
+                    exec(compile(open(filename).read(), filename, 'exec'), {}, values)
                 finally:
                     if dir:
                         del sys.path[0]
@@ -176,7 +176,7 @@ class Variables:
         if args is None:
             args = self.args
 
-        for arg, value in args.items():
+        for arg, value in list(args.items()):
             added = False
             for option in self.options:
                 if arg in option.aliases + [ option.key ]:
@@ -195,20 +195,20 @@ class Variables:
 
         # Call the convert functions:
         for option in self.options:
-            if option.converter and values.has_key(option.key):
+            if option.converter and option.key in values:
                 value = env.subst('${%s}'%option.key)
                 try:
                     try:
                         env[option.key] = option.converter(value)
                     except TypeError:
                         env[option.key] = option.converter(value, env)
-                except ValueError, x:
-                    raise SCons.Errors.UserError, 'Error converting option: %s\n%s'%(option.key, x)
+                except ValueError as x:
+                    raise SCons.Errors.UserError('Error converting option: %s\n%s'%(option.key, x))
 
 
         # Finally validate the values:
         for option in self.options:
-            if option.validator and values.has_key(option.key):
+            if option.validator and option.key in values:
                 option.validator(option.key, env.subst('${%s}'%option.key), env)
 
     def UnknownVariables(self):
@@ -264,8 +264,8 @@ class Variables:
             finally:
                 fh.close()
 
-        except IOError, x:
-            raise SCons.Errors.UserError, 'Error writing options to file: %s\n%s' % (filename, x)
+        except IOError as x:
+            raise SCons.Errors.UserError('Error writing options to file: %s\n%s' % (filename, x))
 
     def GenerateHelpText(self, env, sort=None):
         """
@@ -282,12 +282,12 @@ class Variables:
             options = self.options
 
         def format(opt, self=self, env=env):
-            if env.has_key(opt.key):
+            if opt.key in env:
                 actual = env.subst('${%s}' % opt.key)
             else:
                 actual = None
             return self.FormatVariableHelpText(env, opt.key, opt.help, opt.default, actual, opt.aliases)
-        lines = filter(None, map(format, options))
+        lines = [_f for _f in map(format, options) if _f]
 
         return string.join(lines, '')
 
@@ -296,7 +296,7 @@ class Variables:
 
     def FormatVariableHelpText(self, env, key, help, default, actual, aliases=[]):
         # Don't display the key name itself as an alias.
-        aliases = filter(lambda a, k=key: a != k, aliases)
+        aliases = list(filter(lambda a, k=key: a != k, aliases))
         if len(aliases)==0:
             return self.format % (key, help, default, actual)
         else:

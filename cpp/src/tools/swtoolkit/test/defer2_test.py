@@ -50,15 +50,15 @@ def TestSConstruct(scons_globals):
 
   def FuncA(env):
     env = env
-    print 'FuncA'
+    print('FuncA')
 
   def FuncB(env):
     env = env
-    print 'FuncB'
+    print('FuncB')
 
   def FuncC(env):
     env = env
-    print 'FuncC'
+    print('FuncC')
 
   env.Defer(FuncA, after=FuncB)
   env.Defer(FuncB, after=FuncC)
@@ -69,7 +69,7 @@ def TestSConstruct(scons_globals):
   # fragile.
   try:
     env.ExecuteDefer()
-  except SCons.Errors.UserError, msg:
+  except SCons.Errors.UserError as msg:
     # Make sure the dependency cycle is printed, but the order of the lines in
     # the cycle doesn't matter.
     expect_msg = """Error in ExecuteDefer: dependency cycle detected.
@@ -78,14 +78,14 @@ def TestSConstruct(scons_globals):
    FuncB after: set(['FuncC'])
   """
 
-    msglines = map(lambda s: s.strip(), str(msg).split('\n'))
-    expectlines = map(lambda s: s.strip(), str(expect_msg).split('\n'))
+    msglines = [s.strip() for s in str(msg).split('\n')]
+    expectlines = [s.strip() for s in str(expect_msg).split('\n')]
     msglines.sort()
     expectlines.sort()
     if msglines == expectlines:
-      print 'got expected exception'
+      print('got expected exception')
     else:
-      print 'Expected exception like:\n%s\ngot:\n%s\n' % (expect_msg, msg)
+      print('Expected exception like:\n%s\ngot:\n%s\n' % (expect_msg, msg))
 
 
 def main():

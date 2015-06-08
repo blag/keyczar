@@ -50,7 +50,7 @@ def TestSConstruct(scons_globals):
               FAKE7Z=env.File('fake7z.py').abspath)
 
   # Test extract
-  print 'Will extract:', env.Extract7zip('outdir/dummy_file', 'foodir/foo.7z')
+  print('Will extract:', env.Extract7zip('outdir/dummy_file', 'foodir/foo.7z'))
 
   # Test archive
   env.Compress7zip('comp.7z', ['bardir/bar1'])

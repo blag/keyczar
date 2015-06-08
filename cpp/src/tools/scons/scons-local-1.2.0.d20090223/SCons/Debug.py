@@ -45,7 +45,7 @@ else:
     def logInstanceCreation(instance, name=None):
         if name is None:
             name = instance.__class__.__name__
-        if not tracked_classes.has_key(name):
+        if name not in tracked_classes:
             tracked_classes[name] = []
         tracked_classes[name].append(weakref.ref(instance))
 
@@ -55,7 +55,7 @@ tracked_classes = {}
 
 def string_to_classes(s):
     if s == '*':
-        c = tracked_classes.keys()
+        c = list(tracked_classes.keys())
         c.sort()
         return c
     else:
@@ -63,7 +63,7 @@ def string_to_classes(s):
 
 def fetchLoggedInstances(classes="*"):
     classnames = string_to_classes(classes)
-    return map(lambda cn: (cn, len(tracked_classes[cn])), classnames)
+    return [(cn, len(tracked_classes[cn])) for cn in classnames]
   
 def countLoggedInstances(classes, file=sys.stdout):
     for classname in string_to_classes(classes):
@@ -84,7 +84,7 @@ def dumpLoggedInstances(classes, file=sys.stdout):
             obj = ref()
             if obj is not None:
                 file.write('    %s:\n' % obj)
-                for key, value in obj.__dict__.items():
+                for key, value in list(obj.__dict__.items()):
                     file.write('        %20s : %s\n' % (key, value))
 
 
@@ -149,18 +149,18 @@ def caller_trace(back=0):
 # print a single caller and its callers, if any
 def _dump_one_caller(key, file, level=0):
     l = []
-    for c,v in caller_dicts[key].items():
+    for c,v in list(caller_dicts[key].items()):
         l.append((-v,c))
     l.sort()
     leader = '      '*level
     for v,c in l:
         file.write("%s  %6d %s:%d(%s)\n" % ((leader,-v) + func_shorten(c[-3:])))
-        if caller_dicts.has_key(c):
+        if c in caller_dicts:
             _dump_one_caller(c, file, level+1)
 
 # print each call tree
 def dump_caller_counts(file=sys.stdout):
-    keys = caller_bases.keys()
+    keys = list(caller_bases.keys())
     keys.sort()
     for k in keys:
         file.write("Callers of %s:%d(%s), %d calls:\n"
@@ -176,7 +176,7 @@ shorten_list = [
 if os.sep != '/':
    def platformize(t):
        return (string.replace(t[0], '/', os.sep), t[1])
-   shorten_list = map(platformize, shorten_list)
+   shorten_list = list(map(platformize, shorten_list))
    del platformize
 
 def func_shorten(func_tuple):

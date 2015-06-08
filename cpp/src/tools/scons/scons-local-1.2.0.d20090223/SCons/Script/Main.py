@@ -36,6 +36,7 @@ it goes here.
 
 __revision__ = "src/engine/SCons/Script/Main.py 4043 2009/02/23 09:06:45 scons"
 
+import itertools
 import os
 import os.path
 import string
@@ -67,6 +68,7 @@ import SCons.Util
 import SCons.Warnings
 
 import SCons.Script.Interactive
+import collections
 
 def fetch_win32_parallel_msg():
     # A subsidiary function that exists solely to isolate this import
@@ -103,7 +105,7 @@ class Progressor:
         self.interval = interval
         self.overwrite = overwrite
 
-        if callable(obj):
+        if isinstance(obj, collections.Callable):
             self.func = obj
         elif SCons.Util.is_List(obj):
             self.func = self.spinner
@@ -145,7 +147,7 @@ ProgressObject = SCons.Util.Null()
 
 def Progress(*args, **kw):
     global ProgressObject
-    ProgressObject = apply(Progressor, args, kw)
+    ProgressObject = Progressor(*args, **kw)
 
 # Task control.
 #
@@ -220,7 +222,7 @@ class BuildTask(SCons.Taskmaster.OutOfDateTask):
                     self.exception_set()
                 self.do_failed()
             else:
-                print "scons: Nothing to be done for `%s'." % t
+                print("scons: Nothing to be done for `%s'." % t)
                 SCons.Taskmaster.OutOfDateTask.executed(self)
         else:
             SCons.Taskmaster.OutOfDateTask.executed(self)
@@ -257,7 +259,7 @@ class BuildTask(SCons.Taskmaster.OutOfDateTask):
         node = buildError.node
         if not SCons.Util.is_List(node):
                 node = [ node ]
-        nodename = string.join(map(str, node), ', ')
+        nodename = string.join(list(map(str, node)), ', ')
 
         errfmt = "scons: *** [%s] %s\n"
         sys.stderr.write(errfmt % (nodename, buildError))
@@ -289,8 +291,8 @@ class BuildTask(SCons.Taskmaster.OutOfDateTask):
             if self.options.debug_includes:
                 tree = t.render_include_tree()
                 if tree:
-                    print
-                    print tree
+                    print()
+                    print(tree)
         SCons.Taskmaster.OutOfDateTask.postprocess(self)
 
     def make_ready(self):
@@ -329,10 +331,10 @@ class CleanTask(SCons.Taskmaster.AlwaysTask):
                 else:
                     errstr = "Path '%s' exists but isn't a file or directory."
                     raise SCons.Errors.UserError(errstr % (pathstr))
-        except SCons.Errors.UserError, e:
-            print e
-        except (IOError, OSError), e:
-            print "scons: Could not remove '%s':" % pathstr, e.strerror
+        except SCons.Errors.UserError as e:
+            print(e)
+        except (IOError, OSError) as e:
+            print("scons: Could not remove '%s':" % pathstr, e.strerror)
 
     def show(self):
         target = self.targets[0]
@@ -340,7 +342,7 @@ class CleanTask(SCons.Taskmaster.AlwaysTask):
             for t in self.targets:
                 if not t.isdir():
                     display("Removed " + str(t))
-        if SCons.Environment.CleanTargets.has_key(target):
+        if target in SCons.Environment.CleanTargets:
             files = SCons.Environment.CleanTargets[target]
             for f in files:
                 self.fs_delete(f.abspath, str(f), 0)
@@ -351,17 +353,17 @@ class CleanTask(SCons.Taskmaster.AlwaysTask):
             for t in self.targets:
                 try:
                     removed = t.remove()
-                except OSError, e:
+                except OSError as e:
                     # An OSError may indicate something like a permissions
                     # issue, an IOError would indicate something like
                     # the file not existing.  In either case, print a
                     # message and keep going to try to remove as many
                     # targets aa possible.
-                    print "scons: Could not remove '%s':" % str(t), e.strerror
+                    print("scons: Could not remove '%s':" % str(t), e.strerror)
                 else:
                     if removed:
                         display("Removed " + str(t))
-        if SCons.Environment.CleanTargets.has_key(target):
+        if target in SCons.Environment.CleanTargets:
             files = SCons.Environment.CleanTargets[target]
             for f in files:
                 self.fs_delete(f.abspath, str(f))
@@ -409,7 +411,7 @@ class TreePrinter:
         return node.all_children()
     def get_derived_children(self, node):
         children = node.all_children(None)
-        return filter(lambda x: x.has_builder(), children)
+        return [x for x in children if x.has_builder()]
     def display(self, t):
         if self.derived:
             func = self.get_derived_children
@@ -464,9 +466,9 @@ class FakeOptionParser:
 OptionsParser = FakeOptionParser()
 
 def AddOption(*args, **kw):
-    if not kw.has_key('default'):
+    if 'default' not in kw:
         kw['default'] = None
-    result = apply(OptionsParser.add_local_option, args, kw)
+    result = OptionsParser.add_local_option(*args, **kw)
     return result
 
 def GetOption(name):
@@ -496,14 +498,14 @@ class CountStats(Stats):
     def do_print(self):
         stats_table = {}
         for s in self.stats:
-            for n in map(lambda t: t[0], s):
+            for n in [t[0] for t in s]:
                 stats_table[n] = [0, 0, 0, 0]
         i = 0
         for s in self.stats:
             for n, c in s:
                 stats_table[n][i] = c
             i = i + 1
-        keys = stats_table.keys()
+        keys = list(stats_table.keys())
         keys.sort()
         self.outfp.write("Object counts:\n")
         pre = ["   "]
@@ -513,8 +515,8 @@ class CountStats(Stats):
         fmt2 = string.join(pre + [' %7d']*l + post, '')
         labels = self.labels[:l]
         labels.append(("", "Class"))
-        self.outfp.write(fmt1 % tuple(map(lambda x: x[0], labels)))
-        self.outfp.write(fmt1 % tuple(map(lambda x: x[1], labels)))
+        self.outfp.write(fmt1 % tuple([x[0] for x in labels]))
+        self.outfp.write(fmt1 % tuple([x[1] for x in labels]))
         for k in keys:
             r = stats_table[k][:l] + [k]
             self.outfp.write(fmt2 % tuple(r))
@@ -527,7 +529,13 @@ class MemStats(Stats):
         self.stats.append(SCons.Debug.memory())
     def do_print(self):
         fmt = 'Memory %-32s %12d\n'
-        for label, stats in map(None, self.labels, self.stats):
+        # From https://stackoverflow.com/a/12016610
+        # Ex:
+        # map(None, xrange(5), xrange(10, 12))
+        #   ->
+        # list(map(lambda *a: a,*zip(*itertools.zip_longest(range(5), range(10, 17)))))
+        #for label, stats in map(None, self.labels, self.stats):
+        for label, stats in list(map(lambda *a: a, *zip(*itertools.zip_longest(self.labels, self.stats)))):
             self.outfp.write(fmt % (label, stats))
 
 memory_stats = MemStats()
@@ -600,7 +608,7 @@ def _scons_internal_error():
     """Handle all errors but user errors. Print out a message telling
     the user what to do in this case and print a normal trace.
     """
-    print 'internal error'
+    print('internal error')
     traceback.print_exc()
     sys.exit(2)
 
@@ -682,7 +690,7 @@ def _load_site_scons_dir(topdir, site_dir_name=None):
     site_dir = os.path.join(topdir.path, site_dir_name)
     if not os.path.exists(site_dir):
         if err_if_not_found:
-            raise SCons.Errors.UserError, "site dir %s not found."%site_dir
+            raise SCons.Errors.UserError("site dir %s not found."%site_dir)
         return
 
     site_init_filename = "site_init.py"
@@ -701,10 +709,10 @@ def _load_site_scons_dir(topdir, site_dir_name=None):
             finally:
                 if fp:
                     fp.close()
-        except ImportError, e:
+        except ImportError as e:
             sys.stderr.write("Can't import site init file '%s': %s\n"%(site_init_file, e))
             raise
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("Site init file '%s' raised exception: %s\n"%(site_init_file, e))
             raise
     if os.path.exists(site_tools_dir):
@@ -826,7 +834,7 @@ def _main(parser):
             # Give them the options usage now, before we fail
             # trying to read a non-existent SConstruct file.
             raise SConsPrintHelpException
-        raise SCons.Errors.UserError, "No SConstruct file found."
+        raise SCons.Errors.UserError("No SConstruct file found.")
 
     if scripts[0] == "-":
         d = fs.getcwd()
@@ -901,7 +909,7 @@ def _main(parser):
     try:
         for script in scripts:
             SCons.Script._SConscript._SConscript(fs, script)
-    except SCons.Errors.StopError, e:
+    except SCons.Errors.StopError as e:
         # We had problems reading an SConscript file, such as it
         # couldn't be copied in to the VariantDir.  Since we're just
         # reading SConscript files and haven't started building
@@ -957,8 +965,8 @@ def _main(parser):
             # SConscript files.  Give them the options usage.
             raise SConsPrintHelpException
         else:
-            print help_text
-            print "Use scons -H for help about command-line options."
+            print(help_text)
+            print("Use scons -H for help about command-line options.")
         exit_status = 0
         return
 
@@ -1058,7 +1066,7 @@ def _build_targets(fs, options, targets, target_top):
                         # or not a file, so go ahead and keep it as a default
                         # target and let the engine sort it out:
                         return 1                
-                d = filter(check_dir, SCons.Script.DEFAULT_TARGETS)
+                d = list(filter(check_dir, SCons.Script.DEFAULT_TARGETS))
                 SCons.Script.DEFAULT_TARGETS[:] = d
                 target_top = None
                 lookup_top = None
@@ -1093,7 +1101,7 @@ def _build_targets(fs, options, targets, target_top):
                 node = None
         return node
 
-    nodes = filter(None, map(Entry, targets))
+    nodes = [_f for _f in map(Entry, targets) if _f]
 
     task_class = BuildTask      # default action is to build targets
     opening_message = "Building targets ..."
@@ -1125,7 +1133,7 @@ def _build_targets(fs, options, targets, target_top):
             # This is cribbed from the implementation of
             # random.shuffle() in Python 2.X.
             d = dependencies
-            for i in xrange(len(d)-1, 0, -1):
+            for i in range(len(d)-1, 0, -1):
                 j = int(random.random() * (i+1))
                 d[i], d[j] = d[j], d[i]
             return d
@@ -1205,7 +1213,7 @@ def _exec_main(parser, values):
     elif options.profile_file:
         try:
             from cProfile import Profile
-        except ImportError, e:
+        except ImportError as e:
             from profile import Profile
 
         # Some versions of Python 2.4 shipped a profiler that had the
@@ -1223,7 +1231,7 @@ def _exec_main(parser, values):
         prof = Profile()
         try:
             prof.runcall(_main, parser)
-        except SConsPrintHelpException, e:
+        except SConsPrintHelpException as e:
             prof.dump_stats(options.profile_file)
             raise e
         except SystemExit:
@@ -1258,7 +1266,7 @@ def main():
     parts.append("Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 The SCons Foundation")
     version = string.join(parts, '')
 
-    import SConsOptions
+    from . import SConsOptions
     parser = SConsOptions.Parser(version)
     values = SConsOptions.SConsValues(parser.get_default_values())
 
@@ -1266,22 +1274,22 @@ def main():
     
     try:
         _exec_main(parser, values)
-    except SystemExit, s:
+    except SystemExit as s:
         if s:
             exit_status = s
     except KeyboardInterrupt:
         print("scons: Build interrupted.")
         sys.exit(2)
-    except SyntaxError, e:
+    except SyntaxError as e:
         _scons_syntax_error(e)
     except SCons.Errors.InternalError:
         _scons_internal_error()
-    except SCons.Errors.UserError, e:
+    except SCons.Errors.UserError as e:
         _scons_user_error(e)
     except SConsPrintHelpException:
         parser.print_help()
         exit_status = 0
-    except SCons.Errors.BuildError, e:
+    except SCons.Errors.BuildError as e:
         exit_status = e.exitstatus
     except:
         # An exception here is likely a builtin Python exception Python
@@ -1317,10 +1325,10 @@ def main():
             else:
                 ct = last_command_end - first_command_start
         scons_time = total_time - sconscript_time - ct
-        print "Total build time: %f seconds"%total_time
-        print "Total SConscript file execution time: %f seconds"%sconscript_time
-        print "Total SCons execution time: %f seconds"%scons_time
-        print "Total command execution time: %f seconds"%ct
+        print("Total build time: %f seconds"%total_time)
+        print("Total SConscript file execution time: %f seconds"%sconscript_time)
+        print("Total SCons execution time: %f seconds"%scons_time)
+        print("Total command execution time: %f seconds"%ct)
 
     sys.exit(exit_status)
 

@@ -45,9 +45,9 @@ be able to depend on any other type of "thing."
 __revision__ = "src/engine/SCons/Node/__init__.py 4043 2009/02/23 09:06:45 scons"
 
 import copy
-from itertools import chain, izip
+from itertools import chain
 import string
-import UserList
+import collections
 
 from SCons.Debug import logInstanceCreation
 import SCons.Executor
@@ -136,7 +136,7 @@ class NodeInfoBase:
             try:
                 field_list = self.field_list
             except AttributeError:
-                field_list = self.__dict__.keys()
+                field_list = list(self.__dict__.keys())
                 field_list.sort()
         fields = []
         for field in field_list:
@@ -351,12 +351,12 @@ class Node:
         for d in self.depends:
             if d.missing():
                 msg = "Explicit dependency `%s' not found, needed by target `%s'."
-                raise SCons.Errors.StopError, msg % (d, self)
+                raise SCons.Errors.StopError(msg % (d, self))
         if not self.implicit is None:
             for i in self.implicit:
                 if i.missing():
                     msg = "Implicit dependency `%s' not found, needed by target `%s'."
-                    raise SCons.Errors.StopError, msg % (i, self)
+                    raise SCons.Errors.StopError(msg % (i, self))
         self.binfo = self.get_binfo()
 
     def build(self, **kw):
@@ -372,8 +372,8 @@ class Node:
 
         """
         try:
-            apply(self.get_executor(), (self,), kw)
-        except SCons.Errors.BuildError, e:
+            self.get_executor()(*(self,), **kw)
+        except SCons.Errors.BuildError as e:
             e.node = self
             raise
 
@@ -548,8 +548,8 @@ class Node:
         deps = []
         while nodes:
             n = nodes.pop(0)
-            d = filter(lambda x, seen=seen: not seen.has_key(x),
-                       n.get_found_includes(env, scanner, path))
+            d = list(filter(lambda x, seen=seen: x not in seen,
+                       n.get_found_includes(env, scanner, path)))
             if d:
                 deps.extend(d)
                 for n in d:
@@ -829,10 +829,10 @@ class Node:
         """Adds dependencies."""
         try:
             self._add_child(self.depends, self.depends_set, depend)
-        except TypeError, e:
+        except TypeError as e:
             e = e.args[0]
             if SCons.Util.is_List(e):
-                s = map(str, e)
+                s = list(map(str, e))
             else:
                 s = str(e)
             raise SCons.Errors.UserError("attempted to add a non-Node dependency to %s:\n\t%s is a %s, not a Node" % (str(self), s, type(e)))
@@ -846,10 +846,10 @@ class Node:
         """Adds dependencies to ignore."""
         try:
             self._add_child(self.ignore, self.ignore_set, depend)
-        except TypeError, e:
+        except TypeError as e:
             e = e.args[0]
             if SCons.Util.is_List(e):
-                s = map(str, e)
+                s = list(map(str, e))
             else:
                 s = str(e)
             raise SCons.Errors.UserError("attempted to ignore a non-Node dependency of %s:\n\t%s is a %s, not a Node" % (str(self), s, type(e)))
@@ -860,10 +860,10 @@ class Node:
             return
         try:
             self._add_child(self.sources, self.sources_set, source)
-        except TypeError, e:
+        except TypeError as e:
             e = e.args[0]
             if SCons.Util.is_List(e):
-                s = map(str, e)
+                s = list(map(str, e))
             else:
                 s = str(e)
             raise SCons.Errors.UserError("attempted to add a non-Node as source of %s:\n\t%s is a %s, not a Node" % (str(self), s, type(e)))
@@ -1053,7 +1053,7 @@ class Node:
             if t: Trace(': old %s new %s' % (len(then), len(children)))
             result = True
 
-        for child, prev_ni in izip(children, then):
+        for child, prev_ni in zip(children, then):
             if child.changed_since_last_build(self, prev_ni):
                 if t: Trace(': %s changed' % child)
                 result = True
@@ -1199,8 +1199,8 @@ class Node:
         new_bkids    = new.bsources    + new.bdepends    + new.bimplicit
         new_bkidsigs = new.bsourcesigs + new.bdependsigs + new.bimplicitsigs
 
-        osig = dict(izip(old_bkids, old_bkidsigs))
-        nsig = dict(izip(new_bkids, new_bkidsigs))
+        osig = dict(zip(old_bkids, old_bkidsigs))
+        nsig = dict(zip(new_bkids, new_bkidsigs))
 
         # The sources and dependencies we'll want to report are all stored
         # as relative paths to this target's directory, but we want to
@@ -1215,11 +1215,11 @@ class Node:
 
         lines = []
 
-        removed = filter(lambda x, nk=new_bkids: not x in nk, old_bkids)
+        removed = list(filter(lambda x, nk=new_bkids: not x in nk, old_bkids))
         if removed:
-            removed = map(stringify, removed)
+            removed = list(map(stringify, removed))
             fmt = "`%s' is no longer a dependency\n"
-            lines.extend(map(lambda s, fmt=fmt: fmt % s, removed))
+            lines.extend(list(map(lambda s, fmt=fmt: fmt % s, removed)))
 
         for k in new_bkids:
             if not k in old_bkids:
@@ -1229,8 +1229,8 @@ class Node:
 
         if len(lines) == 0 and old_bkids != new_bkids:
             lines.append("the dependency order changed:\n" +
-                         "%sold: %s\n" % (' '*15, map(stringify, old_bkids)) +
-                         "%snew: %s\n" % (' '*15, map(stringify, new_bkids)))
+                         "%sold: %s\n" % (' '*15, list(map(stringify, old_bkids))) +
+                         "%snew: %s\n" % (' '*15, list(map(stringify, new_bkids))))
 
         if len(lines) == 0:
             def fmt_with_title(title, strlines):
@@ -1257,7 +1257,7 @@ class Node:
             return string.join(lines, ' '*11)
 
 try:
-    [].extend(UserList.UserList([]))
+    [].extend(collections.UserList([]))
 except TypeError:
     # Python 1.5.2 doesn't allow a list to be extended by list-like
     # objects (such as UserList instances), so just punt and use
@@ -1265,9 +1265,9 @@ except TypeError:
     def NodeList(l):
         return l
 else:
-    class NodeList(UserList.UserList):
+    class NodeList(collections.UserList):
         def __str__(self):
-            return str(map(str, self.data))
+            return str(list(map(str, self.data)))
 
 def get_children(node, parent): return node.children()
 def ignore_cycle(node, stack): pass
@@ -1298,7 +1298,7 @@ class Walker:
         self.history = {} # used to efficiently detect and avoid cycles
         self.history[node] = None
 
-    def next(self):
+    def __next__(self):
         """Return the next node for this walk of the tree.
 
         This function is intentionally iterative, not recursive,
@@ -1310,7 +1310,7 @@ class Walker:
                 node = self.stack[-1].wkids.pop(0)
                 if not self.stack[-1].wkids:
                     self.stack[-1].wkids = None
-                if self.history.has_key(node):
+                if node in self.history:
                     self.cycle_func(node, self.stack)
                 else:
                     node.wkids = copy.copy(self.kids_func(node, self.stack[-1]))

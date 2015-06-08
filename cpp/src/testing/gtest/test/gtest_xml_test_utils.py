@@ -66,28 +66,28 @@ class GTestXMLTestCase(unittest.TestCase):
     """
 
     if expected_node.nodeType == Node.CDATA_SECTION_NODE:
-      self.assertEquals(Node.CDATA_SECTION_NODE, actual_node.nodeType)
-      self.assertEquals(expected_node.nodeValue, actual_node.nodeValue)
+      self.assertEqual(Node.CDATA_SECTION_NODE, actual_node.nodeType)
+      self.assertEqual(expected_node.nodeValue, actual_node.nodeValue)
       return
 
-    self.assertEquals(Node.ELEMENT_NODE, actual_node.nodeType)
-    self.assertEquals(Node.ELEMENT_NODE, expected_node.nodeType)
-    self.assertEquals(expected_node.tagName, actual_node.tagName)
+    self.assertEqual(Node.ELEMENT_NODE, actual_node.nodeType)
+    self.assertEqual(Node.ELEMENT_NODE, expected_node.nodeType)
+    self.assertEqual(expected_node.tagName, actual_node.tagName)
 
     expected_attributes = expected_node.attributes
     actual_attributes   = actual_node  .attributes
-    self.assertEquals(expected_attributes.length, actual_attributes.length)
+    self.assertEqual(expected_attributes.length, actual_attributes.length)
     for i in range(expected_attributes.length):
       expected_attr = expected_attributes.item(i)
       actual_attr   = actual_attributes.get(expected_attr.name)
-      self.assert_(actual_attr is not None)
-      self.assertEquals(expected_attr.value, actual_attr.value)
+      self.assertTrue(actual_attr is not None)
+      self.assertEqual(expected_attr.value, actual_attr.value)
 
     expected_children = self._GetChildren(expected_node)
     actual_children = self._GetChildren(actual_node)
-    self.assertEquals(len(expected_children), len(actual_children))
-    for child_id, child in expected_children.iteritems():
-      self.assert_(child_id in actual_children,
+    self.assertEqual(len(expected_children), len(actual_children))
+    for child_id, child in expected_children.items():
+      self.assertTrue(child_id in actual_children,
                    '<%s> is not in <%s>' % (child_id, actual_children))
       self.AssertEquivalentNodes(child, actual_children[child_id])
 
@@ -114,15 +114,15 @@ class GTestXMLTestCase(unittest.TestCase):
     children = {}
     for child in element.childNodes:
       if child.nodeType == Node.ELEMENT_NODE:
-        self.assert_(child.tagName in self.identifying_attribute,
+        self.assertTrue(child.tagName in self.identifying_attribute,
                      "Encountered unknown element <%s>" % child.tagName)
         childID = child.getAttribute(self.identifying_attribute[child.tagName])
-        self.assert_(childID not in children)
+        self.assertTrue(childID not in children)
         children[childID] = child
       elif child.nodeType == Node.TEXT_NODE:
-        self.assert_(child.nodeValue.isspace())
+        self.assertTrue(child.nodeValue.isspace())
       elif child.nodeType == Node.CDATA_SECTION_NODE:
-        self.assert_("detail" not in children)
+        self.assertTrue("detail" not in children)
         children["detail"] = child
       else:
         self.fail("Encountered unexpected node type %d" % child.nodeType)

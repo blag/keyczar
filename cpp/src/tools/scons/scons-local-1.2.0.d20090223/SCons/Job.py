@@ -221,7 +221,7 @@ class Serial:
 # Parallel class (and its dependent classes) will work if the interpreter
 # doesn't support threads.
 try:
-    import Queue
+    import queue
     import threading
 except ImportError:
     pass
@@ -271,19 +271,19 @@ else:
             One must specify the stack size of the worker threads. The
             stack size is specified in kilobytes.
             """
-            self.requestQueue = Queue.Queue(0)
-            self.resultsQueue = Queue.Queue(0)
+            self.requestQueue = queue.Queue(0)
+            self.resultsQueue = queue.Queue(0)
 
             try:
                 prev_size = threading.stack_size(stack_size*1024) 
-            except AttributeError, e:
+            except AttributeError as e:
                 # Only print a warning if the stack size has been
                 # explicitly set.
                 if not explicit_stack_size is None:
                     msg = "Setting stack size is unsupported by this version of Python:\n    " + \
                         e.args[0]
                     SCons.Warnings.warn(SCons.Warnings.StackSizeWarning, msg)
-            except ValueError, e:
+            except ValueError as e:
                 msg = "Setting stack size failed:\n    " + str(e)
                 SCons.Warnings.warn(SCons.Warnings.StackSizeWarning, msg)
 
@@ -295,7 +295,7 @@ else:
 
             # Once we drop Python 1.5 we can change the following to:
             #if 'prev_size' in locals():
-            if 'prev_size' in locals().keys():
+            if 'prev_size' in list(locals().keys()):
                 threading.stack_size(prev_size)
 
         def put(self, task):

@@ -196,7 +196,7 @@ def process_warn_strings(arguments):
         if len(elems) == 1 and elems[0] == 'all':
             class_name = "Warning"
         else:
-            class_name = string.join(map(_capitalize, elems), '') + "Warning"
+            class_name = string.join(list(map(_capitalize, elems)), '') + "Warning"
         try:
             clazz = globals()[class_name]
         except KeyError:

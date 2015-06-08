@@ -36,7 +36,7 @@ __revision__ = "src/engine/SCons/Tool/f95.py 4043 2009/02/23 09:06:45 scons"
 import SCons.Defaults
 import SCons.Tool
 import SCons.Util
-import fortran
+from . import fortran
 from SCons.Tool.FortranCommon import add_all_to_env, add_f95_to_env
 
 compilers = ['f95']

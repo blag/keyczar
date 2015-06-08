@@ -169,7 +169,7 @@ class EnvToolsTests(unittest.TestCase):
     self.assertEqual(env.SubstList2('$LIST2', '$STR2'), ['C', 'A', 'B', 'BAR'])
 
     # Items in list are actually strings, not some subclass
-    self.assert_(type(env.SubstList2('$STR1')[0]) is str)
+    self.assertTrue(type(env.SubstList2('$STR1')[0]) is str)
 
   def testRelativePath(self):
     """Test RelativePath()."""

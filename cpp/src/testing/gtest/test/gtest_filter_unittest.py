@@ -160,7 +160,7 @@ def InvokeWithModifiedEnv(extra_env, function, *args, **kwargs):
     os.environ.update(extra_env)
     return function(*args, **kwargs)
   finally:
-    for key in extra_env.iterkeys():
+    for key in extra_env.keys():
       if key in original_env:
         os.environ[key] = original_env[key]
       else:
@@ -190,10 +190,10 @@ class GTestFilterUnitTest(unittest.TestCase):
     """Asserts that two sets are equal."""
 
     for elem in lhs:
-      self.assert_(elem in rhs, '%s in %s' % (elem, rhs))
+      self.assertTrue(elem in rhs, '%s in %s' % (elem, rhs))
 
     for elem in rhs:
-      self.assert_(elem in lhs, '%s in %s' % (elem, lhs))
+      self.assertTrue(elem in lhs, '%s in %s' % (elem, lhs))
 
   def AssertPartitionIsValid(self, set_var, list_of_sets):
     """Asserts that list_of_sets is a valid partition of set_var."""
@@ -244,7 +244,7 @@ class GTestFilterUnitTest(unittest.TestCase):
     for i in range(0, total_shards):
       (tests_run, exit_code) = RunWithSharding(total_shards, i, command)
       if check_exit_0:
-        self.assert_(exit_code is None)
+        self.assertTrue(exit_code is None)
       partition.append(tests_run)
 
     self.AssertPartitionIsValid(tests_to_run, partition)
@@ -508,7 +508,7 @@ class GTestFilterUnitTest(unittest.TestCase):
 
     test_tmpdir = tempfile.mkdtemp()
     shard_status_file = os.path.join(test_tmpdir, 'shard_status_file')
-    self.assert_(not os.path.exists(shard_status_file))
+    self.assertTrue(not os.path.exists(shard_status_file))
 
     extra_env = {SHARD_STATUS_FILE_ENV_VAR: shard_status_file}
     stdout_file = InvokeWithModifiedEnv(extra_env, os.popen, COMMAND, 'r')
@@ -516,7 +516,7 @@ class GTestFilterUnitTest(unittest.TestCase):
       stdout_file.readlines()
     finally:
       stdout_file.close()
-      self.assert_(os.path.exists(shard_status_file))
+      self.assertTrue(os.path.exists(shard_status_file))
       os.remove(shard_status_file)
       os.removedirs(test_tmpdir)
 
@@ -525,7 +525,7 @@ class GTestFilterUnitTest(unittest.TestCase):
 
     test_tmpdir = tempfile.mkdtemp()
     shard_status_file = os.path.join(test_tmpdir, 'shard_status_file2')
-    self.assert_(not os.path.exists(shard_status_file))
+    self.assertTrue(not os.path.exists(shard_status_file))
 
     extra_env = {SHARD_STATUS_FILE_ENV_VAR: shard_status_file}
     stdout_file = InvokeWithModifiedEnv(extra_env, os.popen,
@@ -534,7 +534,7 @@ class GTestFilterUnitTest(unittest.TestCase):
       stdout_file.readlines()
     finally:
       stdout_file.close()
-      self.assert_(os.path.exists(shard_status_file))
+      self.assertTrue(os.path.exists(shard_status_file))
       os.remove(shard_status_file)
       os.removedirs(test_tmpdir)
 

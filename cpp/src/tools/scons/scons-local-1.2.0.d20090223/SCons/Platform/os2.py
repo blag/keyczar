@@ -33,7 +33,7 @@ selection method.
 __revision__ = "src/engine/SCons/Platform/os2.py 4043 2009/02/23 09:06:45 scons"
 
 def generate(env):
-    if not env.has_key('ENV'):
+    if 'ENV' not in env:
         env['ENV']        = {}
     env['OBJPREFIX']      = ''
     env['OBJSUFFIX']      = '.obj'

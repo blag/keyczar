@@ -65,7 +65,7 @@ def diskcheck_convert(value):
         elif v in diskcheck_all:
             result.append(v)
         else:
-            raise ValueError, v
+            raise ValueError(v)
     return result
 
 class SConsValues(optparse.Values):
@@ -139,7 +139,7 @@ class SConsValues(optparse.Values):
         Sets an option from an SConscript file.
         """
         if not name in self.settable:
-            raise SCons.Errors.UserError, "This option is not settable from a SConscript file: %s"%name
+            raise SCons.Errors.UserError("This option is not settable from a SConscript file: %s"%name)
 
         if name == 'num_jobs':
             try:
@@ -147,28 +147,28 @@ class SConsValues(optparse.Values):
                 if value < 1:
                     raise ValueError
             except ValueError:
-                raise SCons.Errors.UserError, "A positive integer is required: %s"%repr(value)
+                raise SCons.Errors.UserError("A positive integer is required: %s"%repr(value))
         elif name == 'max_drift':
             try:
                 value = int(value)
             except ValueError:
-                raise SCons.Errors.UserError, "An integer is required: %s"%repr(value)
+                raise SCons.Errors.UserError("An integer is required: %s"%repr(value))
         elif name == 'duplicate':
             try:
                 value = str(value)
             except ValueError:
-                raise SCons.Errors.UserError, "A string is required: %s"%repr(value)
+                raise SCons.Errors.UserError("A string is required: %s"%repr(value))
             if not value in SCons.Node.FS.Valid_Duplicates:
-                raise SCons.Errors.UserError, "Not a valid duplication style: %s" % value
+                raise SCons.Errors.UserError("Not a valid duplication style: %s" % value)
             # Set the duplicate style right away so it can affect linking
             # of SConscript files.
             SCons.Node.FS.set_duplicate(value)
         elif name == 'diskcheck':
             try:
                 value = diskcheck_convert(value)
-            except ValueError, v:
-                raise SCons.Errors.UserError, "Not a valid diskcheck value: %s"%v
-            if not self.__dict__.has_key('diskcheck'):
+            except ValueError as v:
+                raise SCons.Errors.UserError("Not a valid diskcheck value: %s"%v)
+            if 'diskcheck' not in self.__dict__:
                 # No --diskcheck= option was specified on the command line.
                 # Set this right away so it can affect the rest of the
                 # file/Node lookups while processing the SConscript files.
@@ -177,12 +177,12 @@ class SConsValues(optparse.Values):
             try:
                 value = int(value)
             except ValueError:
-                raise SCons.Errors.UserError, "An integer is required: %s"%repr(value)
+                raise SCons.Errors.UserError("An integer is required: %s"%repr(value))
         elif name == 'md5_chunksize':
             try:
                 value = int(value)
             except ValueError:
-                raise SCons.Errors.UserError, "An integer is required: %s"%repr(value)
+                raise SCons.Errors.UserError("An integer is required: %s"%repr(value))
         elif name == 'warn':
             if SCons.Util.is_String(value):
                 value = [value]
@@ -214,7 +214,7 @@ class SConsOption(optparse.Option):
     def _check_nargs_optional(self):
         if self.nargs == '?' and self._short_opts:
             fmt = "option %s: nargs='?' is incompatible with short options"
-            raise SCons.Errors.UserError, fmt % self._short_opts[0]
+            raise SCons.Errors.UserError(fmt % self._short_opts[0])
 
     try:
         _orig_CONST_ACTIONS = optparse.Option.CONST_ACTIONS
@@ -356,7 +356,7 @@ class SConsOptionParser(optparse.OptionParser):
             group = self.add_option_group(group)
             self.local_option_group = group
 
-        result = apply(group.add_option, args, kw)
+        result = group.add_option(*args, **kw)
 
         if result:
             # The option was added succesfully.  We now have to add the
@@ -604,14 +604,14 @@ def Parser(version):
     debug_options = ["count", "explain", "findlibs",
                      "includes", "memoizer", "memory", "objects",
                      "pdb", "presub", "stacktrace",
-                     "time"] + deprecated_debug_options.keys()
+                     "time"] + list(deprecated_debug_options.keys())
 
     def opt_debug(option, opt, value, parser,
                   debug_options=debug_options,
                   deprecated_debug_options=deprecated_debug_options):
         if value in debug_options:
             parser.values.debug.append(value)
-            if value in deprecated_debug_options.keys():
+            if value in list(deprecated_debug_options.keys()):
                 try:
                     parser.values.delayed_warnings
                 except AttributeError:
@@ -634,7 +634,7 @@ def Parser(version):
     def opt_diskcheck(option, opt, value, parser):
         try:
             diskcheck_value = diskcheck_convert(value)
-        except ValueError, e:
+        except ValueError as e:
             raise OptionValueError("Warning: `%s' is not a valid diskcheck type" % e)
         setattr(parser.values, option.dest, diskcheck_value)
 
@@ -800,7 +800,7 @@ def Parser(version):
     tree_options = ["all", "derived", "prune", "status"]
 
     def opt_tree(option, opt, value, parser, tree_options=tree_options):
-        import Main
+        from . import Main
         tp = Main.TreePrinter()
         for o in string.split(value, ','):
             if o == 'all':

@@ -95,12 +95,12 @@ class GTestHelpTest(unittest.TestCase):
     skipped when the given flag is specified."""
 
     exit_code, output = RunWithFlag(flag)
-    self.assertEquals(0, exit_code)
-    self.assert_(HELP_REGEX.search(output), output)
+    self.assertEqual(0, exit_code)
+    self.assertTrue(HELP_REGEX.search(output), output)
     if IS_WINDOWS:
-      self.assert_(CATCH_EXCEPTIONS_FLAG in output, output)
+      self.assertTrue(CATCH_EXCEPTIONS_FLAG in output, output)
     else:
-      self.assert_(CATCH_EXCEPTIONS_FLAG not in output, output)
+      self.assertTrue(CATCH_EXCEPTIONS_FLAG not in output, output)
 
   def testPrintsHelpWithFullFlag(self):
     self.TestHelpFlag('--help')
@@ -119,8 +119,8 @@ class GTestHelpTest(unittest.TestCase):
     and the help message is not printed."""
 
     exit_code, output = RunWithFlag(None)
-    self.assert_(exit_code != 0)
-    self.assert_(not HELP_REGEX.search(output), output)
+    self.assertTrue(exit_code != 0)
+    self.assertTrue(not HELP_REGEX.search(output), output)
 
 
 if __name__ == '__main__':

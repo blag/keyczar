@@ -35,7 +35,7 @@ __revision__ = "src/engine/SCons/Tool/gnulink.py 4043 2009/02/23 09:06:45 scons"
 
 import SCons.Util
 
-import link
+from . import link
 
 linkers = ['g++', 'gcc']
 

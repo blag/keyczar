@@ -10,9 +10,9 @@ __revision__ = "$Id: textwrap.py,v 1.32.8.2 2004/05/13 01:48:15 gward Exp $"
 import string, re
 
 try:
-   unicode
+   str
 except NameError:
-   class unicode:
+   class str:
        pass
 
 # Do the right thing with boolean values for all known Python versions
@@ -141,7 +141,7 @@ class TextWrapper:
         if self.replace_whitespace:
             if type(text) == type(''):
                 text = string.translate(text, self.whitespace_trans)
-            elif isinstance(text, unicode):
+            elif isinstance(text, str):
                 text = string.translate(text, self.unicode_whitespace_trans)
         return text
 
@@ -158,7 +158,7 @@ class TextWrapper:
           'use', ' ', 'the', ' ', '-b', ' ', 'option!'
         """
         chunks = self.wordsep_re.split(text)
-        chunks = filter(None, chunks)
+        chunks = [_f for _f in chunks if _f]
         return chunks
 
     def _fix_sentence_endings(self, chunks):
@@ -316,7 +316,7 @@ def wrap(text, width=70, **kwargs):
     """
     kw = kwargs.copy()
     kw['width'] = width
-    w = apply(TextWrapper, (), kw)
+    w = TextWrapper(*(), **kw)
     return w.wrap(text)
 
 def fill(text, width=70, **kwargs):
@@ -330,7 +330,7 @@ def fill(text, width=70, **kwargs):
     """
     kw = kwargs.copy()
     kw['width'] = width
-    w = apply(TextWrapper, (), kw)
+    w = TextWrapper(*(), **kw)
     return w.fill(text)
 
 

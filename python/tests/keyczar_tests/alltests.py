@@ -22,11 +22,11 @@ Suite of all unittests for Python Keyczar.
 
 import unittest
 
-import crypter_test
-import keyczart_test
-import signer_test
-import util_test
-import session_test
+from . import crypter_test
+from . import keyczart_test
+from . import signer_test
+from . import util_test
+from . import session_test
 
 def suite():
   alltests = unittest.TestSuite()

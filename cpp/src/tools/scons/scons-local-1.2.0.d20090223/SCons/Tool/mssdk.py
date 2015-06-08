@@ -40,15 +40,15 @@ from SCons.Tool.MSCommon.sdk import detect_sdk, \
 
 def generate(env):
     """Add construction variables for an MS SDK to an Environment."""
-    if env.has_key('MSSDK_DIR'):
+    if 'MSSDK_DIR' in env:
         set_sdk_by_directory(env, env.subst('$MSSDK_DIR'))
         return
 
-    if env.has_key('MSSDK_VERSION'):
+    if 'MSSDK_VERSION' in env:
         set_sdk_by_version(env, env.subst('$MSSDK_VERSION'))
         return
 
-    if env.has_key('MSVS_VERSION'):
+    if 'MSVS_VERSION' in env:
         set_default_sdk(env, env['MSVS_VERSION'])
 
     #print "No MSVS_VERSION: this is likely to be a bug"

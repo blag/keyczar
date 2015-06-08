@@ -49,7 +49,7 @@ import SCons.Script.SConscript
 import SCons.Util
 import SCons.Warnings
 
-from MSCommon import detect_msvs, merge_default_version
+from .MSCommon import detect_msvs, merge_default_version
 
 ##############################################################################
 # Below here are the classes and functions for generation of
@@ -115,7 +115,7 @@ def msvs_parse_version(s):
 # which works regardless of how we were invoked.
 def getExecScriptMain(env, xml=None):
     scons_home = env.get('SCONS_HOME')
-    if not scons_home and os.environ.has_key('SCONS_LIB_DIR'):
+    if not scons_home and 'SCONS_LIB_DIR' in os.environ:
         scons_home = os.environ['SCONS_LIB_DIR']
     if scons_home:
         exec_script_main = "from os.path import join; import sys; sys.path = [ r'%s' ] + sys.path; import SCons.Script; SCons.Script.main()" % scons_home
@@ -160,7 +160,7 @@ def makeHierarchy(sources):
         if len(path):
             dict = hierarchy
             for part in path[:-1]:
-                if not dict.has_key(part):
+                if part not in dict:
                     dict[part] = {}
                 dict = dict[part]
             dict[path[-1]] = file
@@ -187,23 +187,21 @@ class _DSPGenerator:
         else:
             self.dspabs = get_abspath()
 
-        if not env.has_key('variant'):
-            raise SCons.Errors.InternalError, \
-                  "You must specify a 'variant' argument (i.e. 'Debug' or " +\
-                  "'Release') to create an MSVSProject."
+        if 'variant' not in env:
+            raise SCons.Errors.InternalError("You must specify a 'variant' argument (i.e. 'Debug' or " +\
+                  "'Release') to create an MSVSProject.")
         elif SCons.Util.is_String(env['variant']):
             variants = [env['variant']]
         elif SCons.Util.is_List(env['variant']):
             variants = env['variant']
 
-        if not env.has_key('buildtarget') or env['buildtarget'] == None:
+        if 'buildtarget' not in env or env['buildtarget'] == None:
             buildtarget = ['']
         elif SCons.Util.is_String(env['buildtarget']):
             buildtarget = [env['buildtarget']]
         elif SCons.Util.is_List(env['buildtarget']):
             if len(env['buildtarget']) != len(variants):
-                raise SCons.Errors.InternalError, \
-                    "Sizes of 'buildtarget' and 'variant' lists must be the same."
+                raise SCons.Errors.InternalError("Sizes of 'buildtarget' and 'variant' lists must be the same.")
             buildtarget = []
             for bt in env['buildtarget']:
                 if SCons.Util.is_String(bt):
@@ -218,14 +216,13 @@ class _DSPGenerator:
             for _ in variants:
                 buildtarget.append(bt)
 
-        if not env.has_key('outdir') or env['outdir'] == None:
+        if 'outdir' not in env or env['outdir'] == None:
             outdir = ['']
         elif SCons.Util.is_String(env['outdir']):
             outdir = [env['outdir']]
         elif SCons.Util.is_List(env['outdir']):
             if len(env['outdir']) != len(variants):
-                raise SCons.Errors.InternalError, \
-                    "Sizes of 'outdir' and 'variant' lists must be the same."
+                raise SCons.Errors.InternalError("Sizes of 'outdir' and 'variant' lists must be the same.")
             outdir = []
             for s in env['outdir']:
                 if SCons.Util.is_String(s):
@@ -240,14 +237,13 @@ class _DSPGenerator:
             for v in variants:
                 outdir.append(s)
 
-        if not env.has_key('runfile') or env['runfile'] == None:
+        if 'runfile' not in env or env['runfile'] == None:
             runfile = buildtarget[-1:]
         elif SCons.Util.is_String(env['runfile']):
             runfile = [env['runfile']]
         elif SCons.Util.is_List(env['runfile']):
             if len(env['runfile']) != len(variants):
-                raise SCons.Errors.InternalError, \
-                    "Sizes of 'runfile' and 'variant' lists must be the same."
+                raise SCons.Errors.InternalError("Sizes of 'runfile' and 'variant' lists must be the same.")
             runfile = []
             for s in env['runfile']:
                 if SCons.Util.is_String(s):
@@ -268,7 +264,7 @@ class _DSPGenerator:
 
         self.env = env
 
-        if self.env.has_key('name'):
+        if 'name' in self.env:
             self.name = self.env['name']
         else:
             self.name = os.path.basename(SCons.Util.splitext(self.dspfile)[0])
@@ -288,14 +284,14 @@ class _DSPGenerator:
         self.configs = {}
 
         self.nokeep = 0
-        if env.has_key('nokeep') and env['variant'] != 0:
+        if 'nokeep' in env and env['variant'] != 0:
             self.nokeep = 1
 
         if self.nokeep == 0 and os.path.exists(self.dspabs):
             self.Parse()
 
         for t in zip(sourcenames,self.srcargs):
-            if self.env.has_key(t[1]):
+            if t[1] in self.env:
                 if SCons.Util.is_List(self.env[t[1]]):
                     for i in self.env[t[1]]:
                         if not i in self.sources[t[0]]:
@@ -325,13 +321,13 @@ class _DSPGenerator:
                 config.platform = 'Win32'
 
             self.configs[variant] = config
-            print "Adding '" + self.name + ' - ' + config.variant + '|' + config.platform + "' to '" + str(dspfile) + "'"
+            print("Adding '" + self.name + ' - ' + config.variant + '|' + config.platform + "' to '" + str(dspfile) + "'")
 
         for i in range(len(variants)):
             AddConfig(self, variants[i], buildtarget[i], outdir[i], runfile[i], cmdargs)
 
         self.platforms = []
-        for key in self.configs.keys():
+        for key in list(self.configs.keys()):
             platform = self.configs[key].platform
             if not platform in self.platforms:
                 self.platforms.append(platform)
@@ -366,7 +362,7 @@ class _GenerateV6DSP(_DSPGenerator):
 
     def PrintHeader(self):
         # pick a default config
-        confkeys = self.configs.keys()
+        confkeys = list(self.configs.keys())
         confkeys.sort()
 
         name = self.name
@@ -387,7 +383,7 @@ class _GenerateV6DSP(_DSPGenerator):
                         '# PROP Scc_LocalPath ""\n\n')
 
         first = 1
-        confkeys = self.configs.keys()
+        confkeys = list(self.configs.keys())
         confkeys.sort()
         for kind in confkeys:
             outdir = self.configs[kind].outdir
@@ -398,7 +394,7 @@ class _GenerateV6DSP(_DSPGenerator):
             else:
                 self.file.write('\n!ELSEIF  "$(CFG)" == "%s - Win32 %s"\n\n' % (name, kind))
 
-            env_has_buildtarget = self.env.has_key('MSVSBUILDTARGET')
+            env_has_buildtarget = 'MSVSBUILDTARGET' in self.env
             if not env_has_buildtarget:
                 self.env['MSVSBUILDTARGET'] = buildtarget
 
@@ -458,7 +454,7 @@ class _GenerateV6DSP(_DSPGenerator):
                       'Resource Files': 'r|rc|ico|cur|bmp|dlg|rc2|rct|bin|cnt|rtf|gif|jpg|jpeg|jpe',
                       'Other Files': ''}
 
-        cats = categories.keys()
+        cats = list(categories.keys())
         # TODO(1.5):
         #cats.sort(lambda a, b: cmp(a.lower(), b.lower()))
         cats.sort(lambda a, b: cmp(string.lower(a), string.lower(b)))
@@ -537,8 +533,8 @@ class _GenerateV6DSP(_DSPGenerator):
     def Build(self):
         try:
             self.file = open(self.dspabs,'w')
-        except IOError, detail:
-            raise SCons.Errors.InternalError, 'Unable to open "' + self.dspabs + '" for writing:' + str(detail)
+        except IOError as detail:
+            raise SCons.Errors.InternalError('Unable to open "' + self.dspabs + '" for writing:' + str(detail))
         else:
             self.PrintHeader()
             self.PrintProject()
@@ -663,7 +659,7 @@ class _GenerateV7DSP(_DSPGenerator):
     def PrintProject(self):
         self.file.write('\t<Configurations>\n')
 
-        confkeys = self.configs.keys()
+        confkeys = list(self.configs.keys())
         confkeys.sort()
         for kind in confkeys:
             variant = self.configs[kind].variant
@@ -673,7 +669,7 @@ class _GenerateV7DSP(_DSPGenerator):
             runfile     = self.configs[kind].runfile
             cmdargs = self.configs[kind].cmdargs
 
-            env_has_buildtarget = self.env.has_key('MSVSBUILDTARGET')
+            env_has_buildtarget = 'MSVSBUILDTARGET' in self.env
             if not env_has_buildtarget:
                 self.env['MSVSBUILDTARGET'] = buildtarget
 
@@ -717,7 +713,7 @@ class _GenerateV7DSP(_DSPGenerator):
             self.file.write(pdata + '-->\n')
 
     def printSources(self, hierarchy, commonprefix):
-        sorteditems = hierarchy.items()
+        sorteditems = list(hierarchy.items())
         # TODO(1.5):
         #sorteditems.sort(lambda a, b: cmp(a[0].lower(), b[0].lower()))
         sorteditems.sort(lambda a, b: cmp(string.lower(a[0]), string.lower(b[0])))
@@ -750,11 +746,11 @@ class _GenerateV7DSP(_DSPGenerator):
 
         self.file.write('\t<Files>\n')
 
-        cats = categories.keys()
+        cats = list(categories.keys())
         # TODO(1.5)
         #cats.sort(lambda a, b: cmp(a.lower(), b.lower()))
         cats.sort(lambda a, b: cmp(string.lower(a), string.lower(b)))
-        cats = filter(lambda k, s=self: s.sources[k], cats)
+        cats = list(filter(lambda k, s=self: s.sources[k], cats))
         for kind in cats:
             if len(cats) > 1:
                 self.file.write('\t\t<Filter\n'
@@ -766,14 +762,14 @@ class _GenerateV7DSP(_DSPGenerator):
             # First remove any common prefix
             commonprefix = None
             if len(sources) > 1:
-                s = map(os.path.normpath, sources)
+                s = list(map(os.path.normpath, sources))
                 # take the dirname because the prefix may include parts
                 # of the filenames (e.g. if you have 'dir\abcd' and
                 # 'dir\acde' then the cp will be 'dir\a' )
                 cp = os.path.dirname( os.path.commonprefix(s) )
                 if cp and s[0][len(cp)] == os.sep:
                     # +1 because the filename starts after the separator
-                    sources = map(lambda s, l=len(cp)+1: s[l:], sources)
+                    sources = list(map(lambda s, l=len(cp)+1: s[l:], sources))
                     commonprefix = cp
             elif len(sources) == 1:
                 commonprefix = os.path.dirname( sources[0] )
@@ -846,8 +842,8 @@ class _GenerateV7DSP(_DSPGenerator):
     def Build(self):
         try:
             self.file = open(self.dspabs,'w')
-        except IOError, detail:
-            raise SCons.Errors.InternalError, 'Unable to open "' + self.dspabs + '" for writing:' + str(detail)
+        except IOError as detail:
+            raise SCons.Errors.InternalError('Unable to open "' + self.dspabs + '" for writing:' + str(detail))
         else:
             self.PrintHeader()
             self.PrintProject()
@@ -859,20 +855,17 @@ class _DSWGenerator:
         self.dswfile = os.path.normpath(str(dswfile))
         self.env = env
 
-        if not env.has_key('projects'):
-            raise SCons.Errors.UserError, \
-                "You must specify a 'projects' argument to create an MSVSSolution."
+        if 'projects' not in env:
+            raise SCons.Errors.UserError("You must specify a 'projects' argument to create an MSVSSolution.")
         projects = env['projects']
         if not SCons.Util.is_List(projects):
-            raise SCons.Errors.InternalError, \
-                "The 'projects' argument must be a list of nodes."
+            raise SCons.Errors.InternalError("The 'projects' argument must be a list of nodes.")
         projects = SCons.Util.flatten(projects)
         if len(projects) < 1:
-            raise SCons.Errors.UserError, \
-                "You must specify at least one project to create an MSVSSolution."
-        self.dspfiles = map(str, projects)
+            raise SCons.Errors.UserError("You must specify at least one project to create an MSVSSolution.")
+        self.dspfiles = list(map(str, projects))
 
-        if self.env.has_key('name'):
+        if 'name' in self.env:
             self.name = self.env['name']
         else:
             self.name = os.path.basename(SCons.Util.splitext(self.dswfile)[0])
@@ -897,7 +890,7 @@ class _GenerateV7DSW(_DSWGenerator):
         if self.version_num >= 8.0:
             self.versionstr = '9.00'
 
-        if env.has_key('slnguid') and env['slnguid']:
+        if 'slnguid' in env and env['slnguid']:
             self.slnguid = env['slnguid']
         else:
             self.slnguid = _generateGUID(dswfile, self.name)
@@ -905,7 +898,7 @@ class _GenerateV7DSW(_DSWGenerator):
         self.configs = {}
 
         self.nokeep = 0
-        if env.has_key('nokeep') and env['variant'] != 0:
+        if 'nokeep' in env and env['variant'] != 0:
             self.nokeep = 1
 
         if self.nokeep == 0 and os.path.exists(self.dswfile):
@@ -923,12 +916,11 @@ class _GenerateV7DSW(_DSWGenerator):
                 config.platform = 'Win32'
 
             self.configs[variant] = config
-            print "Adding '" + self.name + ' - ' + config.variant + '|' + config.platform + "' to '" + str(dswfile) + "'"
+            print("Adding '" + self.name + ' - ' + config.variant + '|' + config.platform + "' to '" + str(dswfile) + "'")
 
-        if not env.has_key('variant'):
-            raise SCons.Errors.InternalError, \
-                  "You must specify a 'variant' argument (i.e. 'Debug' or " +\
-                  "'Release') to create an MSVS Solution File."
+        if 'variant' not in env:
+            raise SCons.Errors.InternalError("You must specify a 'variant' argument (i.e. 'Debug' or " +\
+                  "'Release') to create an MSVS Solution File.")
         elif SCons.Util.is_String(env['variant']):
             AddConfig(self, env['variant'])
         elif SCons.Util.is_List(env['variant']):
@@ -936,7 +928,7 @@ class _GenerateV7DSW(_DSWGenerator):
                 AddConfig(self, variant)
 
         self.platforms = []
-        for key in self.configs.keys():
+        for key in list(self.configs.keys()):
             platform = self.configs[key].platform
             if not platform in self.platforms:
                 self.platforms.append(platform)
@@ -991,7 +983,7 @@ class _GenerateV7DSW(_DSWGenerator):
         self.file.write('Global\n')
 
         env = self.env
-        if env.has_key('MSVS_SCC_PROVIDER'):
+        if 'MSVS_SCC_PROVIDER' in env:
             dspfile_base = os.path.basename(self.dspfile)
             slnguid = self.slnguid
             scc_provider = env.get('MSVS_SCC_PROVIDER', '')
@@ -1021,7 +1013,7 @@ class _GenerateV7DSW(_DSWGenerator):
         else:
             self.file.write('\tGlobalSection(SolutionConfiguration) = preSolution\n')
 
-        confkeys = self.configs.keys()
+        confkeys = list(self.configs.keys())
         confkeys.sort()
         cnt = 0
         for name in confkeys:
@@ -1075,8 +1067,8 @@ class _GenerateV7DSW(_DSWGenerator):
     def Build(self):
         try:
             self.file = open(self.dswfile,'w')
-        except IOError, detail:
-            raise SCons.Errors.InternalError, 'Unable to open "' + self.dswfile + '" for writing:' + str(detail)
+        except IOError as detail:
+            raise SCons.Errors.InternalError('Unable to open "' + self.dswfile + '" for writing:' + str(detail))
         else:
             self.PrintSolution()
             self.file.close()
@@ -1124,8 +1116,8 @@ class _GenerateV6DSW(_DSWGenerator):
     def Build(self):
         try:
             self.file = open(self.dswfile,'w')
-        except IOError, detail:
-            raise SCons.Errors.InternalError, 'Unable to open "' + self.dswfile + '" for writing:' + str(detail)
+        except IOError as detail:
+            raise SCons.Errors.InternalError('Unable to open "' + self.dswfile + '" for writing:' + str(detail))
         else:
             self.PrintWorkspace()
             self.file.close()
@@ -1135,7 +1127,7 @@ def GenerateDSP(dspfile, source, env):
     """Generates a Project file based on the version of MSVS that is being used"""
 
     version_num = 6.0
-    if env.has_key('MSVS_VERSION'):
+    if 'MSVS_VERSION' in env:
         version_num, suite = msvs_parse_version(env['MSVS_VERSION'])
     if version_num >= 7.0:
         g = _GenerateV7DSP(dspfile, source, env)
@@ -1148,7 +1140,7 @@ def GenerateDSW(dswfile, source, env):
     """Generates a Solution/Workspace file based on the version of MSVS that is being used"""
 
     version_num = 6.0
-    if env.has_key('MSVS_VERSION'):
+    if 'MSVS_VERSION' in env:
         version_num, suite = msvs_parse_version(env['MSVS_VERSION'])
     if version_num >= 7.0:
         g = _GenerateV7DSW(dswfile, source, env)
@@ -1178,8 +1170,8 @@ def GenerateProject(target, source, env):
     if not dspfile is builddspfile:
         try:
             bdsp = open(str(builddspfile), "w+")
-        except IOError, detail:
-            print 'Unable to open "' + str(dspfile) + '" for writing:',detail,'\n'
+        except IOError as detail:
+            print('Unable to open "' + str(dspfile) + '" for writing:',detail,'\n')
             raise
 
         bdsp.write("This is just a placeholder file.\nThe real project file is here:\n%s\n" % dspfile.get_abspath())
@@ -1194,8 +1186,8 @@ def GenerateProject(target, source, env):
 
             try:
                 bdsw = open(str(builddswfile), "w+")
-            except IOError, detail:
-                print 'Unable to open "' + str(dspfile) + '" for writing:',detail,'\n'
+            except IOError as detail:
+                print('Unable to open "' + str(dspfile) + '" for writing:',detail,'\n')
                 raise
 
             bdsw.write("This is just a placeholder file.\nThe real workspace file is here:\n%s\n" % dswfile.get_abspath())
@@ -1224,7 +1216,7 @@ def projectEmitter(target, source, env):
         source = source + env.subst('$MSVSSCONSCOM', 1)
         source = source + env.subst('$MSVSENCODING', 1)
 
-        if env.has_key('buildtarget') and env['buildtarget'] != None:
+        if 'buildtarget' in env and env['buildtarget'] != None:
             if SCons.Util.is_String(env['buildtarget']):
                 source = source + ' "%s"' % env['buildtarget']
             elif SCons.Util.is_List(env['buildtarget']):
@@ -1233,14 +1225,12 @@ def projectEmitter(target, source, env):
                         source = source + ' "%s"' % bt
                     else:
                         try: source = source + ' "%s"' % bt.get_abspath()
-                        except AttributeError: raise SCons.Errors.InternalError, \
-                            "buildtarget can be a string, a node, a list of strings or nodes, or None"
+                        except AttributeError: raise SCons.Errors.InternalError("buildtarget can be a string, a node, a list of strings or nodes, or None")
             else:
                 try: source = source + ' "%s"' % env['buildtarget'].get_abspath()
-                except AttributeError: raise SCons.Errors.InternalError, \
-                    "buildtarget can be a string, a node, a list of strings or nodes, or None"
+                except AttributeError: raise SCons.Errors.InternalError("buildtarget can be a string, a node, a list of strings or nodes, or None")
 
-        if env.has_key('outdir') and env['outdir'] != None:
+        if 'outdir' in env and env['outdir'] != None:
             if SCons.Util.is_String(env['outdir']):
                 source = source + ' "%s"' % env['outdir']
             elif SCons.Util.is_List(env['outdir']):
@@ -1249,20 +1239,18 @@ def projectEmitter(target, source, env):
                         source = source + ' "%s"' % s
                     else:
                         try: source = source + ' "%s"' % s.get_abspath()
-                        except AttributeError: raise SCons.Errors.InternalError, \
-                            "outdir can be a string, a node, a list of strings or nodes, or None"
+                        except AttributeError: raise SCons.Errors.InternalError("outdir can be a string, a node, a list of strings or nodes, or None")
             else:
                 try: source = source + ' "%s"' % env['outdir'].get_abspath()
-                except AttributeError: raise SCons.Errors.InternalError, \
-                    "outdir can be a string, a node, a list of strings or nodes, or None"
+                except AttributeError: raise SCons.Errors.InternalError("outdir can be a string, a node, a list of strings or nodes, or None")
 
-        if env.has_key('name'):
+        if 'name' in env:
             if SCons.Util.is_String(env['name']):
                 source = source + ' "%s"' % env['name']
             else:
-                raise SCons.Errors.InternalError, "name must be a string"
+                raise SCons.Errors.InternalError("name must be a string")
 
-        if env.has_key('variant'):
+        if 'variant' in env:
             if SCons.Util.is_String(env['variant']):
                 source = source + ' "%s"' % env['variant']
             elif SCons.Util.is_List(env['variant']):
@@ -1270,14 +1258,14 @@ def projectEmitter(target, source, env):
                     if SCons.Util.is_String(variant):
                         source = source + ' "%s"' % variant
                     else:
-                        raise SCons.Errors.InternalError, "name must be a string or a list of strings"
+                        raise SCons.Errors.InternalError("name must be a string or a list of strings")
             else:
-                raise SCons.Errors.InternalError, "variant must be a string or a list of strings"
+                raise SCons.Errors.InternalError("variant must be a string or a list of strings")
         else:
-            raise SCons.Errors.InternalError, "variant must be specified"
+            raise SCons.Errors.InternalError("variant must be specified")
 
         for s in _DSPGenerator.srcargs:
-            if env.has_key(s):
+            if s in env:
                 if SCons.Util.is_String(env[s]):
                     source = source + ' "%s' % env[s]
                 elif SCons.Util.is_List(env[s]):
@@ -1285,9 +1273,9 @@ def projectEmitter(target, source, env):
                         if SCons.Util.is_String(t):
                             source = source + ' "%s"' % t
                         else:
-                            raise SCons.Errors.InternalError, s + " must be a string or a list of strings"
+                            raise SCons.Errors.InternalError(s + " must be a string or a list of strings")
                 else:
-                    raise SCons.Errors.InternalError, s + " must be a string or a list of strings"
+                    raise SCons.Errors.InternalError(s + " must be a string or a list of strings")
 
         source = source + ' "%s"' % str(target[0])
         source = [SCons.Node.Python.Value(source)]
@@ -1319,13 +1307,13 @@ def solutionEmitter(target, source, env):
     if not source:
         source = 'sln_inputs:'
 
-        if env.has_key('name'):
+        if 'name' in env:
             if SCons.Util.is_String(env['name']):
                 source = source + ' "%s"' % env['name']
             else:
-                raise SCons.Errors.InternalError, "name must be a string"
+                raise SCons.Errors.InternalError("name must be a string")
 
-        if env.has_key('variant'):
+        if 'variant' in env:
             if SCons.Util.is_String(env['variant']):
                 source = source + ' "%s"' % env['variant']
             elif SCons.Util.is_List(env['variant']):
@@ -1333,19 +1321,19 @@ def solutionEmitter(target, source, env):
                     if SCons.Util.is_String(variant):
                         source = source + ' "%s"' % variant
                     else:
-                        raise SCons.Errors.InternalError, "name must be a string or a list of strings"
+                        raise SCons.Errors.InternalError("name must be a string or a list of strings")
             else:
-                raise SCons.Errors.InternalError, "variant must be a string or a list of strings"
+                raise SCons.Errors.InternalError("variant must be a string or a list of strings")
         else:
-            raise SCons.Errors.InternalError, "variant must be specified"
+            raise SCons.Errors.InternalError("variant must be specified")
 
-        if env.has_key('slnguid'):
+        if 'slnguid' in env:
             if SCons.Util.is_String(env['slnguid']):
                 source = source + ' "%s"' % env['slnguid']
             else:
-                raise SCons.Errors.InternalError, "slnguid must be a string"
+                raise SCons.Errors.InternalError("slnguid must be a string")
 
-        if env.has_key('projects'):
+        if 'projects' in env:
             if SCons.Util.is_String(env['projects']):
                 source = source + ' "%s"' % env['projects']
             elif SCons.Util.is_List(env['projects']):

@@ -40,21 +40,21 @@ class KeyczartTest(unittest.TestCase):
   def testCreate(self):
     keyczart.main(['create', '--name=testCreate',
                    '--purpose=crypt', '--asymmetric=rsa'])
-    self.assertEquals('testCreate', self.mock.kmd.name)
-    self.assertEquals(keyinfo.DECRYPT_AND_ENCRYPT, self.mock.kmd.purpose)
-    self.assertEquals(keyinfo.RSA_PRIV, self.mock.kmd.type)
+    self.assertEqual('testCreate', self.mock.kmd.name)
+    self.assertEqual(keyinfo.DECRYPT_AND_ENCRYPT, self.mock.kmd.purpose)
+    self.assertEqual(keyinfo.RSA_PRIV, self.mock.kmd.type)
 
   def testAddKey(self):
-    self.assertEquals(3, self.mock.numkeys)
+    self.assertEqual(3, self.mock.numkeys)
     keyczart.main(['addkey', '--status=primary'])
-    self.assertEquals(4, self.mock.numkeys)
+    self.assertEqual(4, self.mock.numkeys)
     # The next version number will be 100, since the previous max was 99
-    self.assertEquals(keyinfo.PRIMARY, self.mock.GetStatus(100))
-    self.assertEquals(keyinfo.ACTIVE, self.mock.GetStatus(42))
+    self.assertEqual(keyinfo.PRIMARY, self.mock.GetStatus(100))
+    self.assertEqual(keyinfo.ACTIVE, self.mock.GetStatus(42))
 
   def testAddKeySizeFlag(self):
     keyczart.main(['addkey', '--size=256'])
-    self.assertEquals(256, self.mock.GetKeySize(100))
+    self.assertEqual(256, self.mock.GetKeySize(100))
 
   def testAddKeyCrypterCreatesCrypter(self):
     self.dummy_location = None
@@ -63,29 +63,29 @@ class KeyczartTest(unittest.TestCase):
       return self.mock
     keyczart._CreateCrypter = dummyCreateCrypter
     keyczart.main(['addkey', '--crypter=foo'])
-    self.assertEquals(self.dummy_location, 'foo')
+    self.assertEqual(self.dummy_location, 'foo')
 
   def testPubKey(self):
     pubmock = readers.MockReader('PUBTEST', keyinfo.DECRYPT_AND_ENCRYPT,
                                  keyinfo.RSA_PRIV)
     pubmock.AddKey(33, keyinfo.PRIMARY, 1024)  # small key size for fast tests
     keyczart.mock = pubmock  # use pubmock instead
-    self.assertEquals(None, pubmock.pubkmd)
+    self.assertEqual(None, pubmock.pubkmd)
     keyczart.main(['pubkey'])
     self.assertNotEqual(None, pubmock.pubkmd)
-    self.assertEquals('PUBTEST', pubmock.pubkmd.name)
-    self.assertEquals(keyinfo.ENCRYPT, pubmock.pubkmd.purpose)
-    self.assertEquals(keyinfo.RSA_PUB, pubmock.pubkmd.type)
+    self.assertEqual('PUBTEST', pubmock.pubkmd.name)
+    self.assertEqual(keyinfo.ENCRYPT, pubmock.pubkmd.purpose)
+    self.assertEqual(keyinfo.RSA_PUB, pubmock.pubkmd.type)
     self.assertTrue(pubmock.HasPubKey(33))
 
   def testPromote(self):
     keyczart.main(['promote', '--version=77'])
-    self.assertEquals(keyinfo.PRIMARY, self.mock.GetStatus(77))
-    self.assertEquals(keyinfo.ACTIVE, self.mock.GetStatus(42))
+    self.assertEqual(keyinfo.PRIMARY, self.mock.GetStatus(77))
+    self.assertEqual(keyinfo.ACTIVE, self.mock.GetStatus(42))
 
   def testDemote(self):
     keyczart.main(['demote', '--version=77'])
-    self.assertEquals(keyinfo.INACTIVE, self.mock.GetStatus(77))
+    self.assertEqual(keyinfo.INACTIVE, self.mock.GetStatus(77))
 
   def testRevoke(self):
     self.assertTrue(self.mock.ExistsVersion(99))
@@ -116,7 +116,7 @@ class KeyczartTest(unittest.TestCase):
 
     generic_keyczar = keyczar.GenericKeyczar(self.mock)
     generic_keyczar.Write('foo')
-    self.assertEquals(1, MockWriter.num_created, 
+    self.assertEqual(1, MockWriter.num_created, 
                       'Write("string") should have created a new writer')
 
   def tearDown(self):

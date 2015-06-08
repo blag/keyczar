@@ -34,6 +34,8 @@ import string
 
 import SCons.Node.FS
 import SCons.Util
+import collections
+import sys
 
 
 class _Null:
@@ -56,9 +58,9 @@ def Scanner(function, *args, **kw):
     patterned on SCons code.
     """
     if SCons.Util.is_Dict(function):
-        return apply(Selector, (function,) + args, kw)
+        return Selector(*(function,) + args, **kw)
     else:
-        return apply(Base, (function,) + args, kw)
+        return Base(*(function,) + args, **kw)
 
 
 
@@ -169,7 +171,7 @@ class Base:
 
         if skeys is _null:
             if SCons.Util.is_Dict(function):
-                skeys = function.keys()
+                skeys = list(function.keys())
             else:
                 skeys = []
         self.skeys = skeys
@@ -177,7 +179,7 @@ class Base:
         self.node_class = node_class
         self.node_factory = node_factory
         self.scan_check = scan_check
-        if callable(recursive):
+        if isinstance(recursive, collections.Callable):
             self.recurse_nodes = recursive
         elif recursive:
             self.recurse_nodes = self._recurse_all_nodes
@@ -216,7 +218,7 @@ class Base:
         nodes = []
         for l in list:
             if self.node_class and not isinstance(l, self.node_class):
-                l = apply(node_factory, (l,), kw)
+                l = node_factory(*(l,), **kw)
             nodes.append(l)
         return nodes
 
@@ -278,9 +280,9 @@ class Selector(Base):
     for custom modules that may be out there.)
     """
     def __init__(self, dict, *args, **kw):
-        apply(Base.__init__, (self, None,)+args, kw)
+        Base.__init__(*(self, None,)+args, **kw)
         self.dict = dict
-        self.skeys = dict.keys()
+        self.skeys = list(dict.keys())
 
     def __call__(self, node, env, path = ()):
         return self.select(node)(node, env, path)
@@ -307,7 +309,7 @@ class Current(Base):
         def current_check(node, env):
             return not node.has_builder() or node.is_up_to_date()
         kw['scan_check'] = current_check
-        apply(Base.__init__, (self,) + args, kw)
+        Base.__init__(*(self,) + args, **kw)
 
 class Classic(Current):
     """
@@ -337,7 +339,7 @@ class Classic(Current):
         kw['skeys'] = suffixes
         kw['name'] = name
 
-        apply(Current.__init__, (self,) + args, kw)
+        Current.__init__(*(self,) + args, **kw)
 
     def find_include(self, include, source_dir, path):
         n = SCons.Node.FS.find_file(include, (source_dir,) + tuple(path))
@@ -359,7 +361,7 @@ class Classic(Current):
             # Intern the names of the include files. Saves some memory
             # if the same header is included many times.
             try:
-                node.includes = map(intern, includes)
+                node.includes = list(map(intern, includes))
             except TypeError:
                 node.includes = includes
 
@@ -371,7 +373,7 @@ class Classic(Current):
         # is actually found in a Repository or locally.
         nodes = []
         source_dir = node.get_dir()
-        if callable(path):
+        if isinstance(path, collections.Callable):
             path = path()
         for include in includes:
             n, i = self.find_include(include, source_dir, path)
@@ -384,7 +386,7 @@ class Classic(Current):
                 nodes.append((sortkey, n))
 
         nodes.sort()
-        nodes = map(lambda pair: pair[1], nodes)
+        nodes = [pair[1] for pair in nodes]
         return nodes
 
 class ClassicCPP(Classic):
@@ -405,7 +407,7 @@ class ClassicCPP(Classic):
 
         n = SCons.Node.FS.find_file(include[1], paths)
 
-        return n, intern(include[1])
+        return n, sys.intern(include[1])
 
     def sort_key(self, include):
         return SCons.Node.FS._my_normcase(string.join(include))

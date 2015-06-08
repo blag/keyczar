@@ -55,14 +55,14 @@ __revision__ = "src/engine/SCons/Variables/ListVariable.py 4043 2009/02/23 09:06
 __all__ = ['ListVariable',]
 
 import string
-import UserList
+import collections
 
 import SCons.Util
 
 
-class _ListVariable(UserList.UserList):
+class _ListVariable(collections.UserList):
     def __init__(self, initlist=[], allowedElems=[]):
-        UserList.UserList.__init__(self, filter(None, initlist))
+        collections.UserList.__init__(self, [_f for _f in initlist if _f])
         self.allowedElems = allowedElems[:]
         self.allowedElems.sort()
 
@@ -97,9 +97,9 @@ def _converter(val, allowedElems, mapdict):
     elif val == 'all':
         val = allowedElems
     else:
-        val = filter(None, string.split(val, ','))
-        val = map(lambda v, m=mapdict: m.get(v, v), val)
-        notAllowed = filter(lambda v, aE=allowedElems: not v in aE, val)
+        val = [_f for _f in string.split(val, ',') if _f]
+        val = list(map(lambda v, m=mapdict: m.get(v, v), val))
+        notAllowed = list(filter(lambda v, aE=allowedElems: not v in aE, val))
         if notAllowed:
             raise ValueError("Invalid value(s) for option: %s" %
                              string.join(notAllowed, ','))

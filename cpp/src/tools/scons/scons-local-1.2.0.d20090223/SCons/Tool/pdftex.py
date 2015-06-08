@@ -74,7 +74,7 @@ def generate(env):
         PDFTeXLaTeXAction = SCons.Action.Action(PDFTeXLaTeXFunction,
                               strfunction=SCons.Tool.tex.TeXLaTeXStrFunction)
 
-    import pdf
+    from . import pdf
     pdf.generate(env)
 
     bld = env['BUILDERS']['PDF']

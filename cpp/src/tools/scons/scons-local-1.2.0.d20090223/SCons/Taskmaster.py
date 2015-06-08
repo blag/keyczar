@@ -109,7 +109,7 @@ fmt = "%(considered)3d "\
 def dump_stats():
     StatsNodes.sort(lambda a, b: cmp(str(a), str(b)))
     for n in StatsNodes:
-        print (fmt % n.stats.__dict__) + str(n)
+        print((fmt % n.stats.__dict__) + str(n))
 
 
 
@@ -242,7 +242,7 @@ class Task:
             raise
         except SCons.Errors.BuildError:
             raise
-        except Exception, e:
+        except Exception as e:
             buildError = SCons.Errors.convert_to_BuildError(e)
             buildError.node = self.targets[0]
             buildError.exc_info = sys.exc_info()
@@ -379,7 +379,7 @@ class Task:
                 t.disambiguate().make_ready()
                 is_up_to_date = not t.has_builder() or \
                                 (not t.always_build and t.is_up_to_date())
-            except EnvironmentError, e:
+            except EnvironmentError as e:
                 raise SCons.Errors.BuildError(node=t, errstr=e.strerror, filename=e.filename)
 
             if not is_up_to_date:
@@ -447,7 +447,7 @@ class Task:
                     if p.ref_count == 0:
                         self.tm.candidates.append(p)
 
-        for p, subtract in parents.items():
+        for p, subtract in list(parents.items()):
             p.ref_count = p.ref_count - subtract
             if T: T.write(self.trace_message('Task.postprocess()',
                                              p,
@@ -509,7 +509,7 @@ class Task:
         except ValueError:
             exc_type, exc_value = exc
             exc_traceback = None
-        raise exc_type, exc_value, exc_traceback
+        raise exc_type(exc_value).with_traceback(exc_traceback)
 
 class AlwaysTask(Task):
     def needs_execute(self):
@@ -782,7 +782,7 @@ class Taskmaster:
                 self.ready_exc = (SCons.Errors.ExplicitExit, e)
                 if T: T.write(self.trace_message('       SystemExit'))
                 return node
-            except Exception, e:
+            except Exception as e:
                 # We had a problem just trying to figure out the
                 # children (like a child couldn't be linked in to a
                 # VariantDir, or a Scanner threw something).  Arrange to
@@ -999,14 +999,14 @@ class Taskmaster:
 
         # TODO(1.5)
         #nclist = [ (n, find_cycle([n], set())) for n in self.pending_children ]
-        nclist = map(lambda n: (n, find_cycle([n], set())), self.pending_children)
+        nclist = [(n, find_cycle([n], set())) for n in self.pending_children]
 
         # TODO(1.5)
         #genuine_cycles = [
         #    node for node, cycle in nclist
         #             if cycle or node.get_state() != NODE_EXECUTED
         #]
-        genuine_cycles = filter(lambda t: t[1] or t[0].get_state() != NODE_EXECUTED, nclist)
+        genuine_cycles = [t for t in nclist if t[1] or t[0].get_state() != NODE_EXECUTED]
         if not genuine_cycles:
             # All of the "cycles" found were single nodes in EXECUTED state,
             # which is to say, they really weren't cycles.  Just return.
@@ -1015,13 +1015,13 @@ class Taskmaster:
         desc = 'Found dependency cycle(s):\n'
         for node, cycle in nclist:
             if cycle:
-                desc = desc + "  " + string.join(map(str, cycle), " -> ") + "\n"
+                desc = desc + "  " + string.join(list(map(str, cycle)), " -> ") + "\n"
             else:
                 desc = desc + \
                     "  Internal Error: no cycle found for node %s (%s) in state %s\n" %  \
                     (node, repr(node), StateString[node.get_state()])
 
-        raise SCons.Errors.UserError, desc
+        raise SCons.Errors.UserError(desc)
 
 # Local Variables:
 # tab-width:4

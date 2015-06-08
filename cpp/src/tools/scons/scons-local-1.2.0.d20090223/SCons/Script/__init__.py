@@ -42,7 +42,7 @@ start_time = time.time()
 import os
 import string
 import sys
-import UserList
+import collections
 
 # Special chicken-and-egg handling of the "--debug=memoizer" flag:
 #
@@ -68,7 +68,7 @@ if "--debug=memoizer" in _args:
         # Some warning was thrown (inability to --debug=memoizer on
         # Python 1.5.2 because it doesn't have metaclasses).  Arrange
         # for it to be displayed or not after warnings are configured.
-        import Main
+        from . import Main
         exc_type, exc_value, tb = sys.exc_info()
         Main.delayed_warnings.append((exc_type, exc_value))
 del _args
@@ -87,7 +87,7 @@ import SCons.Util
 import SCons.Variables
 import SCons.Defaults
 
-import Main
+from . import Main
 
 main                    = Main.main
 
@@ -130,7 +130,7 @@ GetBuildFailures        = Main.GetBuildFailures
 #repositories            = Main.repositories
 
 #
-import SConscript
+from . import SConscript
 _SConscript = SConscript
 
 call_stack              = _SConscript.call_stack
@@ -184,7 +184,7 @@ CScan                   = SCons.Defaults.CScan
 DefaultEnvironment      = SCons.Defaults.DefaultEnvironment
 
 # Other variables we provide.
-class TargetList(UserList.UserList):
+class TargetList(collections.UserList):
     def _do_nothing(self, *args, **kw):
         pass
     def _add_Default(self, list):
@@ -366,7 +366,7 @@ GlobalDefaultBuilders = [
 ]
 
 for name in GlobalDefaultEnvironmentFunctions + GlobalDefaultBuilders:
-    exec "%s = _SConscript.DefaultEnvironmentCall(%s)" % (name, repr(name))
+    exec("%s = _SConscript.DefaultEnvironmentCall(%s)" % (name, repr(name)))
 del name
 
 # There are a handful of variables that used to live in the

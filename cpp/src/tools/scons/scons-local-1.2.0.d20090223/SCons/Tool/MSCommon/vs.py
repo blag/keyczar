@@ -84,7 +84,7 @@ class VisualStudio:
         key = self.hkey_root + '\\' + self.vc_product_dir_key
         try:
             comps = read_reg(key)
-        except WindowsError, e:
+        except WindowsError as e:
             debug('find_vc_product_dir():  no registry key %s' % key)
         else:
             if self.batch_file_dir_reg_relpath:
@@ -384,9 +384,9 @@ def detect_msvs():
     return (len(get_installed_visual_studios()) > 0)
 
 def get_vs_by_version(msvs):
-    if not SupportedVSMap.has_key(msvs):
+    if msvs not in SupportedVSMap:
         msg = "Visual Studio version %s is not supported" % repr(msvs)
-        raise SCons.Errors.UserError, msg
+        raise SCons.Errors.UserError(msg)
     get_installed_visual_studios()
     vs = InstalledVSMap.get(msvs)
     # Some check like this would let us provide a useful error message
@@ -412,15 +412,15 @@ def get_default_version(env):
     version: str
         the default version.
     """
-    if not env.has_key('MSVS') or not SCons.Util.is_Dict(env['MSVS']):
+    if 'MSVS' not in env or not SCons.Util.is_Dict(env['MSVS']):
         # TODO(1.5):
         #versions = [vs.version for vs in get_installed_visual_studios()]
-        versions = map(lambda vs: vs.version, get_installed_visual_studios())
+        versions = [vs.version for vs in get_installed_visual_studios()]
         env['MSVS'] = {'VERSIONS' : versions}
     else:
         versions = env['MSVS'].get('VERSIONS', [])
 
-    if not env.has_key('MSVS_VERSION'):
+    if 'MSVS_VERSION' not in env:
         if versions:
             env['MSVS_VERSION'] = versions[0] #use highest version by default
         else:
@@ -448,7 +448,7 @@ def get_default_arch(env):
         arch = 'x86'
     elif not arch in msvs.get_supported_arch():
         fmt = "Visual Studio version %s does not support architecture %s"
-        raise SCons.Errors.UserError, fmt % (env['MSVS_VERSION'], arch)
+        raise SCons.Errors.UserError(fmt % (env['MSVS_VERSION'], arch))
 
     return arch
 
@@ -471,12 +471,12 @@ def merge_default_version(env):
         msvs_list = get_installed_visual_studios()
         # TODO(1.5):
         #vscommonvarnames = [ vs.common_tools_var for vs in msvs_list ]
-        vscommonvarnames = map(lambda vs: vs.common_tools_var, msvs_list)
+        vscommonvarnames = [vs.common_tools_var for vs in msvs_list]
         nenv = normalize_env(env['ENV'], vscommonvarnames + ['COMSPEC'])
         output = get_output(batfilename, arch, env=nenv)
         vars = parse_output(output, vars)
 
-        for k, v in vars.items():
+        for k, v in list(vars.items()):
             env.PrependENVPath(k, v, delete_existing=1)
 
 def query_versions():
@@ -485,7 +485,7 @@ def query_versions():
     msvs_list = get_installed_visual_studios()
     # TODO(1.5)
     #versions = [ msvs.version for msvs in msvs_list ]
-    versions = map(lambda msvs:  msvs.version, msvs_list)
+    versions = [msvs.version for msvs in msvs_list]
     return versions
 
 # Local Variables:

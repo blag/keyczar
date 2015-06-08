@@ -37,6 +37,7 @@ import SCons.Node.FS
 import SCons.Scanner
 import SCons.Util
 import SCons.Warnings
+import collections
 
 class F90Scanner(SCons.Scanner.Classic):
     """
@@ -75,7 +76,7 @@ class F90Scanner(SCons.Scanner.Classic):
         kw['skeys'] = suffixes
         kw['name'] = name
 
-        apply(SCons.Scanner.Current.__init__, (self,) + args, kw)
+        SCons.Scanner.Current.__init__(*(self,) + args, **kw)
 
     def scan(self, node, env, path=()):
 
@@ -94,12 +95,12 @@ class F90Scanner(SCons.Scanner.Classic):
             d = {}
             for m in defmodules:
                 d[m] = 1
-            modules = filter(lambda m, d=d: not d.has_key(m), modules)
+            modules = list(filter(lambda m, d=d: m not in d, modules))
             #modules = self.undefinedModules(modules, defmodules)
 
             # Convert module name to a .mod filename
             suffix = env.subst('$FORTRANMODSUFFIX')
-            modules = map(lambda x, s=suffix: string.lower(x) + s, modules)
+            modules = list(map(lambda x, s=suffix: string.lower(x) + s, modules))
             # Remove unique items from the list
             mods_and_includes = SCons.Util.unique(includes+modules)
             node.includes = mods_and_includes
@@ -111,7 +112,7 @@ class F90Scanner(SCons.Scanner.Classic):
         # is actually found in a Repository or locally.
         nodes = []
         source_dir = node.get_dir()
-        if callable(path):
+        if isinstance(path, collections.Callable):
             path = path()
         for dep in mods_and_includes:
             n, i = self.find_include(dep, source_dir, path)
@@ -124,7 +125,7 @@ class F90Scanner(SCons.Scanner.Classic):
                 nodes.append((sortkey, n))
 
         nodes.sort()
-        nodes = map(lambda pair: pair[1], nodes)
+        nodes = [pair[1] for pair in nodes]
         return nodes
 
 def FortranScan(path_variable="FORTRANPATH"):

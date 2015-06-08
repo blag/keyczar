@@ -122,7 +122,7 @@ class SConsInteractiveCmd(cmd.Cmd):
 
     def __init__(self, **kw):
         cmd.Cmd.__init__(self)
-        for key, val in kw.items():
+        for key, val in list(kw.items()):
             setattr(self, key, val)
 
         if sys.platform == 'win32':
@@ -131,12 +131,12 @@ class SConsInteractiveCmd(cmd.Cmd):
             self.shell_variable = 'SHELL'
 
     def default(self, argv):
-        print "*** Unknown command: %s" % argv[0]
+        print("*** Unknown command: %s" % argv[0])
 
     def onecmd(self, line):
         line = string.strip(line)
         if not line:
-            print self.lastcmd
+            print(self.lastcmd)
             return self.emptyline()
         self.lastcmd = line
         if line[0] == '!':
@@ -222,8 +222,8 @@ class SConsInteractiveCmd(cmd.Cmd):
 
         def get_unseen_children(node, parent, seen_nodes=seen_nodes):
             def is_unseen(node, seen_nodes=seen_nodes):
-                return not seen_nodes.has_key(node)
-            return filter(is_unseen, node.children(scan=1))
+                return node not in seen_nodes
+            return list(filter(is_unseen, node.children(scan=1)))
 
         def add_to_seen_nodes(node, parent, seen_nodes=seen_nodes):
             seen_nodes[node] = 1
@@ -247,11 +247,11 @@ class SConsInteractiveCmd(cmd.Cmd):
             walker = SCons.Node.Walker(node,
                                         kids_func=get_unseen_children,
                                         eval_func=add_to_seen_nodes)
-            n = walker.next()
+            n = next(walker)
             while n:
-                n = walker.next()
+                n = next(walker)
 
-        for node in seen_nodes.keys():
+        for node in list(seen_nodes.keys()):
             # Call node.clear() to clear most of the state
             node.clear()
             # node.clear() doesn't reset node.state, so call
@@ -276,7 +276,7 @@ class SConsInteractiveCmd(cmd.Cmd):
         return self.do_build(['build', '--clean'] + argv[1:])
 
     def do_EOF(self, argv):
-        print
+        print()
         self.do_exit(argv)
 
     def _do_one_help(self, arg):
@@ -318,7 +318,7 @@ class SConsInteractiveCmd(cmd.Cmd):
             if l[:len(spaces)] == spaces:
                 l = l[len(spaces):]
             return l
-        lines = map(strip_spaces, lines)
+        lines = list(map(strip_spaces, lines))
         return string.join(lines, '\n')
 
     def do_exit(self, argv):
@@ -359,7 +359,7 @@ class SConsInteractiveCmd(cmd.Cmd):
             # Doing the right thing with an argument list currently
             # requires different shell= values on Windows and Linux.
             p = subprocess.Popen(argv, shell=(sys.platform=='win32'))
-        except EnvironmentError, e:
+        except EnvironmentError as e:
             sys.stderr.write('scons: %s: %s\n' % (argv[0], e.strerror))
         else:
             p.wait()

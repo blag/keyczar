@@ -90,19 +90,19 @@ def _swigEmitter(target, source, env):
                 mnames, directors = _find_modules(src)
             if directors:
                 _add_director_header_targets(target, env)
-            target.extend(map(lambda m, d=target[0].dir:
-                                     d.File(m + ".py"), mnames))
+            target.extend(list(map(lambda m, d=target[0].dir:
+                                     d.File(m + ".py"), mnames)))
         if "-java" in flags:
             if mnames is None:
                 mnames, directors = _find_modules(src)
             if directors:
                 _add_director_header_targets(target, env)
-            java_files = map(lambda m: [m + ".java", m + "JNI.java"], mnames)
+            java_files = [[m + ".java", m + "JNI.java"] for m in mnames]
             java_files = SCons.Util.flatten(java_files)
             outdir = env.subst('$SWIGOUTDIR', target=target, source=source)
             if outdir:
-                 java_files = map(lambda j, o=outdir: os.path.join(o, j), java_files)
-            java_files = map(env.fs.File, java_files)
+                 java_files = list(map(lambda j, o=outdir: os.path.join(o, j), java_files))
+            java_files = list(map(env.fs.File, java_files))
             for jf in java_files:
                 t_from_s = lambda t, p, s, x: t.dir
                 SCons.Util.AddMethod(jf, t_from_s, 'target_from_source')

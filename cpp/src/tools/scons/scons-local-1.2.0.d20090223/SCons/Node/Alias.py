@@ -46,7 +46,7 @@ class AliasNameSpace(UserDict.UserDict):
         try:
             a = self[name]
         except KeyError:
-            a = apply(SCons.Node.Alias.Alias, (name,), kw)
+            a = SCons.Node.Alias.Alias(*(name,), **kw)
             self[name] = a
         return a
 
@@ -95,7 +95,7 @@ class Alias(SCons.Node.Node):
     def get_contents(self):
         """The contents of an alias is the concatenation
         of the content signatures of all its sources."""
-        childsigs = map(lambda n: n.get_csig(), self.children())
+        childsigs = [n.get_csig() for n in self.children()]
         return string.join(childsigs, '')
 
     def sconsign(self):

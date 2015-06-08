@@ -47,7 +47,7 @@ class ConcatSourceTests(unittest.TestCase):
 
     # If only one concat-able source file is present, passes through
     cs = env.ConcatSource('foo1.cc', ['a.cc'])
-    self.assertEqual(map(str, cs), ['a.cc'])
+    self.assertEqual(list(map(str, cs)), ['a.cc'])
 
   def testConcatSourceMultiple(self):
     """Test passing multiple inputs."""
@@ -57,12 +57,12 @@ class ConcatSourceTests(unittest.TestCase):
     # Check for both g++ and msvc.
     env3 = env.Clone(CC='g++')
     cs = env3.ConcatSource('foo2a.cc', ['a.cc', 'e.mm', 'b.cc', 'd.o', 'c.cc'])
-    self.assertEqual(map(str, cs), ['e.mm', 'd.o', 'foo2a.cc'])
+    self.assertEqual(list(map(str, cs)), ['e.mm', 'd.o', 'foo2a.cc'])
 
     env4 = env.Clone(CC='cl')
     cs = env4.ConcatSource('foo2b.cc',
                            ['a.cc', 'e.mm', 'b.cc', 'd.obj', 'c.cc'])
-    self.assertEqual(map(str, cs), ['e.mm', 'd.obj', 'foo2b.cc'])
+    self.assertEqual(list(map(str, cs)), ['e.mm', 'd.obj', 'foo2b.cc'])
 
   def testConcatSourceMultipleButOneConcatable(self):
     """Test passing multiple inputs, but only one concat-able."""
@@ -70,7 +70,7 @@ class ConcatSourceTests(unittest.TestCase):
 
     # Even if multiple input files, if only one is concat-able, won't concat.
     cs = env.ConcatSource('foo3.cc', ['a.cc', 'd.o'])
-    self.assertEqual(map(str, cs), ['d.o', 'a.cc'])
+    self.assertEqual(list(map(str, cs)), ['d.o', 'a.cc'])
 
   def testConcatDisabled(self):
     """Test passthru if CONCAT_SOURCE_ENABLE is not set."""
@@ -79,7 +79,7 @@ class ConcatSourceTests(unittest.TestCase):
     # If CONCAT_SOURCE_ENABLE is not set, files are passed through
     env['CONCAT_SOURCE_ENABLE'] = False
     cs = env.ConcatSource('foo4.cc', ['a.cc', 'b.cc', 'c.cc'])
-    self.assertEqual(map(str, cs), ['a.cc', 'b.cc', 'c.cc'])
+    self.assertEqual(list(map(str, cs)), ['a.cc', 'b.cc', 'c.cc'])
 
 
 def TestSConstruct(scons_globals):

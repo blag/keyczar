@@ -57,7 +57,7 @@ def generate(env):
     if GhostscriptAction is None:
         GhostscriptAction = SCons.Action.Action('$GSCOM', '$GSCOMSTR')
 
-    import pdf
+    from . import pdf
     pdf.generate(env)
 
     bld = env['BUILDERS']['PDF']
@@ -69,7 +69,7 @@ def generate(env):
 
 
 def exists(env):
-    if env.has_key('PS2PDF'):
+    if 'PS2PDF' in env:
         return env.Detect(env['PS2PDF'])
     else:
         return env.Detect(gs) or SCons.Util.WhereIs(gs)

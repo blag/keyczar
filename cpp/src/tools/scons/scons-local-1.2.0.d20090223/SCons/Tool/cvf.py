@@ -29,7 +29,7 @@ Tool-specific initialization for the Compaq Visual Fortran compiler.
 
 __revision__ = "src/engine/SCons/Tool/cvf.py 4043 2009/02/23 09:06:45 scons"
 
-import fortran
+from . import fortran
 
 compilers = ['f90']
 

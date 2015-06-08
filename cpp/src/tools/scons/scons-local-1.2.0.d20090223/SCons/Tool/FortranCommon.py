@@ -62,7 +62,7 @@ def isfortran(env, source):
 def _fortranEmitter(target, source, env):
     node = source[0].rfile()
     if not node.exists() and not node.is_derived():
-       print "Could not locate " + str(node.name)
+       print("Could not locate " + str(node.name))
        return ([], [])
     mod_regex = """(?i)^\s*MODULE\s+(?!PROCEDURE)(\w+)"""
     cre = re.compile(mod_regex,re.M)
@@ -73,7 +73,7 @@ def _fortranEmitter(target, source, env):
     # Convert module name to a .mod filename
     suffix = env.subst('$FORTRANMODSUFFIX', target=target, source=source)
     moddir = env.subst('$FORTRANMODDIR', target=target, source=source)
-    modules = map(lambda x, s=suffix: string.lower(x) + s, modules)
+    modules = list(map(lambda x, s=suffix: string.lower(x) + s, modules))
     for m in modules:
        target.append(env.fs.File(m, moddir))
     return (target, source)
@@ -92,7 +92,7 @@ def ComputeFortranSuffixes(suffixes, ppsuffixes):
     assert len(suffixes) > 0
     s = suffixes[0]
     sup = string.upper(s)
-    upper_suffixes = map(string.upper, suffixes)
+    upper_suffixes = list(map(string.upper, suffixes))
     if SCons.Util.case_sensitive_suffixes(s, sup):
         ppsuffixes.extend(upper_suffixes)
     else:
@@ -135,17 +135,17 @@ def DialectAddToEnv(env, dialect, suffixes, ppsuffixes, support_module = 0):
         static_obj.add_emitter(suffix, FortranEmitter)
         shared_obj.add_emitter(suffix, ShFortranEmitter)
 
-    if not env.has_key('%sFLAGS' % dialect):
+    if '%sFLAGS' % dialect not in env:
         env['%sFLAGS' % dialect] = SCons.Util.CLVar('')
 
-    if not env.has_key('SH%sFLAGS' % dialect):
+    if 'SH%sFLAGS' % dialect not in env:
         env['SH%sFLAGS' % dialect] = SCons.Util.CLVar('$%sFLAGS' % dialect)
 
     # If a tool does not define fortran prefix/suffix for include path, use C ones
-    if not env.has_key('INC%sPREFIX' % dialect):
+    if 'INC%sPREFIX' % dialect not in env:
         env['INC%sPREFIX' % dialect] = '$INCPREFIX'
 
-    if not env.has_key('INC%sSUFFIX' % dialect):
+    if 'INC%sSUFFIX' % dialect not in env:
         env['INC%sSUFFIX' % dialect] = '$INCSUFFIX'
 
     env['_%sINCFLAGS' % dialect] = '$( ${_concat(INC%sPREFIX, %sPATH, INC%sSUFFIX, __env__, RDirs, TARGET, SOURCE)} $)' % (dialect, dialect, dialect)

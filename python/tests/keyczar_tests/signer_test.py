@@ -89,7 +89,7 @@ class SignerTest(unittest.TestCase):
 
   def __testAttachedSignAndVerify(self, subdir):
     (signer, attached_sig) = self.__attachedSignInput(subdir, "nonce")
-    self.assertEquals(self.input, signer.AttachedVerify(attached_sig, "nonce"))
+    self.assertEqual(self.input, signer.AttachedVerify(attached_sig, "nonce"))
 
     # Changing nonce should make it fail.
     self.assertFalse(signer.AttachedVerify(attached_sig, "dunce"))
@@ -157,7 +157,7 @@ class SignerTest(unittest.TestCase):
     try:
       signer.Verify(self.input, unencoded_sig)
       raise Exception("Verify should throw a Decoding error")
-    except errors.Base64DecodingError, e:
+    except errors.Base64DecodingError as e:
       pass
     self.assertTrue(signer.Verify(self.input, sig))
 
@@ -189,7 +189,7 @@ class SignerTest(unittest.TestCase):
     try:
       signer.Verify(self.input, unencoded_sig)
       raise Exception("Verify should throw a Decoding error")
-    except errors.Base64DecodingError, e:
+    except errors.Base64DecodingError as e:
       pass
     self.assertTrue(signer.AttachedVerify(sig, "nonce"))
 

@@ -88,7 +88,7 @@ def TestSConstruct(scons_globals):
   ]
   for tool in all_tools:
     if tool not in env['TOOLS']:
-      print 'Adding tool %s...' % tool
+      print('Adding tool %s...' % tool)
       # Not all tools play well together (for example, you can only use one of
       # the target_platform tools at a time), so put each in a separate
       # sub-environment

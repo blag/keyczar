@@ -82,11 +82,11 @@ class InteropLogger(object):
     self.verbose = verbose
 
   def Output(self, string):
-    print string
+    print(string)
 
   def Debug(self, string):
     if self.verbose:
-      print string
+      print(string)
 
   def Collect(self, message, details):
     if message not in self.collection:
@@ -95,10 +95,10 @@ class InteropLogger(object):
 
   def OutputCollection(self):
     for message in self.collection:
-      print "%d Events: %s" % (len(self.collection[message]), message)
+      print("%d Events: %s" % (len(self.collection[message]), message))
       if self.verbose:
         for details in self.collection[message]:
-          print "    %s" % details
+          print("    %s" % details)
     self.collection = {}
 
 
@@ -218,7 +218,7 @@ class InteropTestRunner(object):
               "Ignoring tests because %s" % ignored_test["reason"],
               "%s with %s for %s with options %s" % (
                   operation, algorithm,
-                  implementation, ", ".join(options.values())))
+                  implementation, ", ".join(list(options.values()))))
           return True
     return False
 
@@ -237,14 +237,14 @@ class InteropTestRunner(object):
     """
     operation_options = self.operations[operation][option_string]
     key_set_options = keyset.Options(option_string)
-    option_dict = dict(key_set_options.items() + operation_options.items())
+    option_dict = dict(list(key_set_options.items()) + list(operation_options.items()))
     if not option_dict:
       yield {}
     else:
-      for name, option_list in option_dict.iteritems():
-        if isinstance(option_list, unicode):
+      for name, option_list in option_dict.items():
+        if isinstance(option_list, str):
           option_dict[name] = self.macros[option_list]
-      names, all_options = zip(*option_dict.items())
+      names, all_options = list(zip(*list(option_dict.items())))
       for options in itertools.product(*all_options):
         yield dict([(name, option) for name, option in zip(names, options)])
 
@@ -253,7 +253,7 @@ class InteropTestRunner(object):
     for implementation in self.implementations:
       for test_keyset in Keyset.GetTestKeysets(keyset, self):
         for options in self._Options(operation, test_keyset, "testOptions"):
-          combined_options = dict(options.items() + generate_options.items())
+          combined_options = dict(list(options.items()) + list(generate_options.items()))
           if not self._IsException(
               implementation, operation, keyset.name, combined_options):
             yield (implementation, options)
@@ -280,7 +280,7 @@ class InteropTestRunner(object):
           if os.path.isfile(file_path):
             os.remove(file_path)
         self.logger.Debug("overwrote %s" % location)
-      except os.error, e:
+      except os.error as e:
         self.logger.Output(
             "Error accessing location: %s, error: %s" % (location, e))
         os._exit(1)
@@ -299,7 +299,7 @@ class InteropTestRunner(object):
     args = self.implementations[implementation] + list(params)
     try:
       return subprocess.check_output(args, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
       cmd = subprocess.list2cmdline(args)
       raise Exception("%s failed:\n %s" % (cmd, e.output))
 
@@ -437,8 +437,8 @@ class InteropTestRunner(object):
             generate_implementation,
             operation,
             keyset.name,
-            "_".join(generate_options.values()),
-            "_".join(test_options.values()),
+            "_".join(list(generate_options.values())),
+            "_".join(list(test_options.values())),
             )
 
         test = self.InteropTestGenerator(
@@ -464,8 +464,8 @@ class InteropTestRunner(object):
             generate_implementation,
             operation,
             keyset.name,
-            "_".join(["%s=%s"%o for o in generate_options.items()]),
-            "_".join(["%s=%s"%o for o in test_options.items()]),
+            "_".join(["%s=%s"%o for o in list(generate_options.items())]),
+            "_".join(["%s=%s"%o for o in list(test_options.items())]),
             ))
     for test in sorted(tests):
       self.logger.Output(test)
@@ -504,13 +504,13 @@ class InteropTestRunner(object):
     self.logger.Output("Generate Options:")
     for operation in generate_dict:
       self.logger.Output("  %s:" % operation)
-      for option_name, options in generate_dict[operation].iteritems():
+      for option_name, options in generate_dict[operation].items():
         self.logger.Output("    %s: %s" % (option_name, str(list(options))))
 
     self.logger.Output("\nTest Options:")
     for operation in test_dict:
       self.logger.Output("  %s:" % (operation))
-      for option_name, options in test_dict[operation].iteritems():
+      for option_name, options in test_dict[operation].items():
         self.logger.Output("    %s: %s" % (option_name, str(list(options))))
 
   class InteropTest(unittest.TestCase):
@@ -558,7 +558,7 @@ def main(argv):
           raise ValueError("flag not in flags")
         flags[flag] = val
       except ValueError:
-        print "Flags incorrectly formatted"
+        print("Flags incorrectly formatted")
         return Usage()
     else:
       return Usage()
